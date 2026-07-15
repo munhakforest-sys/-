@@ -763,8 +763,10 @@ document.getElementById('saveSchedule').addEventListener('click', async ()=>{
 });
 
 /* ---------- Init ---------- */
-document.getElementById('toggleMobileView').addEventListener('click', ()=>{
+const mobileToggleBtn = document.getElementById('toggleMobileView');
+mobileToggleBtn.addEventListener('click', ()=>{
   document.body.classList.toggle('force-mobile');
+  mobileToggleBtn.textContent = document.body.classList.contains('force-mobile') ? '🖥 PC 보기 전환' : '📱 모바일 보기 전환';
 });
 initFirebase();
 </script>
