@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>근로학생 근태 관리</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700;900&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --paper:#F5F4EF;
+    --paper-line:#DAD7CC;
+    --ink:#1F2A44;
+    --ink-soft:#4C5A78;
+    --ink-faint:#8B93A6;
+    --stamp:#B3282D;
+    --stamp-dark:#8C1F23;
+    --gold:#A6791F;
+    --white:#FFFFFF;
+    --card-shadow: 0 1px 2px rgba(31,42,68,0.06), 0 8px 24px rgba(31,42,68,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      linear-gradient(var(--paper-line) 1px, transparent 1px) 0 0/100% 34px,
+      var(--paper);
+    color:var(--ink);
+    font-family:'Noto Sans KR', sans-serif;
+    padding:32px 16px 80px;
+    min-height:100vh;
+  }
+  .wrap{max-width:960px;margin:0 auto;}
+
+  header{
+    display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;
+    border-bottom:3px solid var(--ink);padding-bottom:14px;margin-bottom:22px;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;font-size:11px;letter-spacing:.14em;
+    color:var(--stamp);font-weight:600;margin-bottom:4px;
+  }
+  h1{font-family:'Noto Serif KR', serif;font-weight:900;font-size:28px;margin:0;letter-spacing:-0.01em;}
+  .settings-btn{
+    background:var(--ink);color:var(--paper);border:none;font-family:'Noto Sans KR',sans-serif;
+    font-size:13px;font-weight:700;padding:9px 16px;border-radius:3px;cursor:pointer;letter-spacing:.02em;
+  }
+  .settings-btn:hover{background:var(--ink-soft);}
+
+  .status-pill{
+    display:inline-flex;align-items:center;gap:6px;
+    font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;
+    padding:4px 10px;border-radius:20px;border:1px solid var(--paper-line);
+    color:var(--ink-soft);background:var(--white);
+  }
+  .status-dot{width:7px;height:7px;border-radius:50%;background:#3C8A5E;}
+  .status-dot.err{background:var(--stamp);}
+  .status-dot.wait{background:var(--gold);}
+
+  .datebar{
+    display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--paper-line);
+    box-shadow:var(--card-shadow);border-radius:4px;padding:10px 14px;margin-bottom:20px;flex-wrap:wrap;
+  }
+  .datebar button.nav{
+    width:30px;height:30px;border:1px solid var(--paper-line);background:var(--paper);color:var(--ink);
+    border-radius:3px;cursor:pointer;font-size:15px;line-height:1;
+  }
+  .datebar button.nav:hover{background:var(--ink);color:var(--white);}
+  .datebar input[type=date]{
+    font-family:'IBM Plex Mono',monospace;font-size:14px;border:1px solid var(--paper-line);border-radius:3px;
+    padding:6px 8px;color:var(--ink);background:var(--paper);
+  }
+  .datebar .today-label{font-size:13px;color:var(--ink-faint);margin-left:auto;}
+  .datebar .today-btn{
+    font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:700;border:1px solid var(--ink);
+    background:transparent;color:var(--ink);padding:6px 10px;border-radius:3px;cursor:pointer;
+  }
+  .datebar .today-btn:hover{background:var(--ink);color:var(--white);}
+
+  .card{
+    background:var(--white);border:1px solid var(--paper-line);box-shadow:var(--card-shadow);
+    border-radius:5px;padding:20px;margin-bottom:24px;overflow-x:auto;
+  }
+  .card h2{font-family:'Noto Serif KR',serif;font-size:15px;margin:0 0 14px;color:var(--ink-soft);font-weight:700;}
+  table.grid{border-collapse:collapse;width:100%;min-width:640px;}
+  table.grid th, table.grid td{border:1px solid var(--paper-line);text-align:center;padding:0;}
+  table.grid thead th{background:var(--paper);padding:8px 4px 6px;font-family:'IBM Plex Mono',monospace;}
+  table.grid thead .period-no{font-size:12px;font-weight:700;color:var(--ink);}
+  table.grid thead .period-time{display:block;font-size:10px;color:var(--ink-faint);margin-top:2px;font-weight:500;}
+  table.grid th.student-col{
+    text-align:left;padding:8px 12px;font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:13px;
+    background:var(--ink);color:var(--paper);min-width:110px;
+  }
+  th.lunch-head{background:#EFE7DC;}
+  td.cell{width:56px;height:56px;cursor:pointer;position:relative;transition:background .1s;}
+  td.cell:hover{background:#FBF3E9;}
+  td.lunch-cell{
+    cursor:default;
+    background:repeating-linear-gradient(135deg, #F1ECE0, #F1ECE0 6px, #E8E1D2 6px, #E8E1D2 12px);
+  }
+  td.lunch-cell:hover{background:repeating-linear-gradient(135deg, #F1ECE0, #F1ECE0 6px, #E8E1D2 6px, #E8E1D2 12px);}
+  .lunch-mark{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:700;color:var(--ink-faint);letter-spacing:.03em;}
+  .stamp{
+    width:34px;height:34px;margin:0 auto;border-radius:50%;border:2.5px solid var(--stamp);color:var(--stamp);
+    display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;transform:rotate(-8deg);
+    box-shadow:0 0 0 1px rgba(179,40,45,0.08);opacity:0;transition:opacity .08s, transform .08s;user-select:none;
+  }
+  .stamp.on{opacity:1;animation:stampIn .18s ease-out;}
+  @keyframes stampIn{0%{transform:rotate(-8deg) scale(1.5);opacity:0;}100%{transform:rotate(-8deg) scale(1);opacity:1;}}
+  .daytotal{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);font-weight:600;}
+
+  .summary-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(210px,1fr));gap:14px;margin-bottom:24px;}
+  .stu-card{background:var(--white);border:1px solid var(--paper-line);box-shadow:var(--card-shadow);border-radius:5px;padding:16px 16px 14px;}
+  .stu-name{font-family:'Noto Serif KR',serif;font-weight:700;font-size:15px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:baseline;}
+  .stu-name .pct{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-faint);font-weight:500;}
+  .bar-track{width:100%;height:10px;background:var(--paper);border:1px solid var(--paper-line);border-radius:6px;overflow:hidden;margin-bottom:8px;}
+  .bar-fill{height:100%;background:linear-gradient(90deg, var(--ink-soft), var(--ink));border-radius:6px;transition:width .25s ease;}
+  .bar-fill.complete{background:linear-gradient(90deg, var(--gold), #C79A3B);}
+  .stu-hours{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink-soft);}
+  .stu-hours b{color:var(--ink);font-size:15px;}
+  .complete-tag{display:inline-block;margin-top:6px;font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.05em;}
+
+  .card.records table{width:100%;border-collapse:collapse;min-width:auto;}
+  .card.records th,.card.records td{border:none;border-bottom:1px solid var(--paper-line);padding:8px 6px;text-align:left;font-size:13px;}
+  .card.records th{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-faint);font-weight:600;letter-spacing:.04em;}
+  .rec-date-btn{background:none;border:none;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--ink);text-decoration:underline;text-underline-offset:2px;padding:0;}
+  .del-btn{background:none;border:none;color:var(--stamp);cursor:pointer;font-size:12px;font-weight:700;}
+  .empty-note{color:var(--ink-faint);font-size:13px;padding:6px 0;}
+
+  .overlay{position:fixed;inset:0;background:rgba(31,42,68,0.45);display:none;align-items:center;justify-content:center;z-index:50;padding:16px;}
+  .overlay.show{display:flex;}
+  .modal{background:var(--white);border-radius:6px;max-width:440px;width:100%;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.25);max-height:90vh;overflow-y:auto;}
+  .modal h3{font-family:'Noto Serif KR',serif;margin:0 0 16px;font-size:18px;border-bottom:2px solid var(--ink);padding-bottom:10px;}
+  .modal label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:4px;font-weight:700;}
+  .modal input[type=text], .modal input[type=number]{
+    width:100%;padding:8px 10px;margin-bottom:12px;border:1px solid var(--paper-line);border-radius:3px;
+    font-family:'Noto Sans KR',sans-serif;font-size:13px;
+  }
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:6px;}
+  .modal-actions button{padding:8px 16px;border-radius:3px;font-size:13px;font-weight:700;cursor:pointer;}
+  .btn-cancel{background:var(--paper);border:1px solid var(--paper-line);color:var(--ink);}
+  .btn-save{background:var(--ink);border:1px solid var(--ink);color:var(--white);}
+  .note{font-size:11.5px;color:var(--ink-faint);margin-top:-6px;margin-bottom:14px;line-height:1.5;}
+
+  /* Setup banner (shown when firebaseConfig isn't filled in yet) */
+  .setup-banner{
+    background:#2A1E1E;color:#F5E9DD;border-radius:6px;padding:22px 24px;margin-bottom:24px;
+    font-family:'Noto Sans KR',sans-serif;line-height:1.7;font-size:13.5px;
+  }
+  .setup-banner h2{font-family:'Noto Serif KR',serif;color:#F2C572;margin:0 0 10px;font-size:17px;}
+  .setup-banner code{background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px;font-family:'IBM Plex Mono',monospace;}
+  .setup-banner ol{margin:10px 0 0;padding-left:20px;}
+  .setup-banner li{margin-bottom:6px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">WORK-STUDY ATTENDANCE LEDGER</div>
+      <h1>근로학생 근태 관리</h1>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="status-pill" id="statusPill"><span class="status-dot wait" id="statusDot"></span><span id="statusText">연결 중…</span></span>
+      <button class="settings-btn" id="openSettings">⚙ 학생·목표시간 설정</button>
+    </div>
+  </header>
+
+  <div id="setupBannerWrap"></div>
+
+  <div class="datebar">
+    <button class="nav" id="prevDay">‹</button>
+    <input type="date" id="datePicker">
+    <button class="nav" id="nextDay">›</button>
+    <button class="today-btn" id="gotoToday">오늘</button>
+    <span class="today-label" id="dayTotalLabel"></span>
+  </div>
+
+  <div class="card">
+    <h2 id="gridTitle">교시별 출근 체크</h2>
+    <table class="grid" id="gridTable"></table>
+  </div>
+
+  <div class="card">
+    <h2>학생별 누적 시간 (목표 대비)</h2>
+    <div class="summary-grid" id="summaryGrid"></div>
+  </div>
+
+  <div class="card records">
+    <h2>기록된 날짜</h2>
+    <table id="recordsTable">
+      <thead><tr><th>날짜</th><th>합계</th><th></th></tr></thead>
+      <tbody id="recordsBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3>설정</h3>
+    <label>학생 이름 (4명)</label>
+    <input type="text" id="name0" placeholder="정희훈">
+    <input type="text" id="name1" placeholder="전형서">
+    <input type="text" id="name2" placeholder="원수빈">
+    <input type="text" id="name3" placeholder="김태윤">
+    <label>목표 누적 시간 (시간)</label>
+    <input type="number" id="targetInput" min="1" step="1">
+    <div class="note">이 사이트 링크를 아는 사람은 누구나 데이터를 보고 체크할 수 있어요. 링크는 필요한 사람에게만 공유해주세요.</div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="cancelSettings">취소</button>
+      <button class="btn-save" id="saveSettings">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   ⚠ 1단계: 아래 firebaseConfig 를 본인의 Firebase 프로젝트 값으로 교체하세요.
+   Firebase 콘솔(console.firebase.google.com) > 프로젝트 설정 > 내 앱(웹 앱 추가)
+   에서 나오는 값을 그대로 복사해서 붙여넣으면 됩니다.
+   ============================================================ */
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyBvqe3YetySsyptttwJwCtBMytNY8awVKU",
+  authDomain: "cbnu-n14-student-assistant.firebaseapp.com",
+  projectId: "cbnu-n14-student-assistant",
+  storageBucket: "cbnu-n14-student-assistant.firebasestorage.app",
+  messagingSenderId: "267258744086",
+  appId: "1:267258744086:web:be49f4a2aa76c5321e5437",
+  measurementId: "G-VYKNP9EN8Z"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+/* ============================================================ */
+
+const isConfigured = firebaseConfig.apiKey && !firebaseConfig.apiKey.includes('여기에');
+
+const PERIODS = Array.from({length:9}, (_,i)=>i); // 0~8 -> 1교시~9교시
+const LUNCH_INDEX = 3; // 4교시 = 점심시간, 근로 불가
+function periodLabel(i){
+  const start = 9+i, end = 10+i;
+  return { no: (i+1)+'교시', time: `${start}:00~${end}:00` };
+}
+function countWorked(rowStr){
+  let c = 0;
+  for(let i=0;i<rowStr.length;i++){ if(i!==LUNCH_INDEX && rowStr[i]==='1') c++; }
+  return c;
+}
+
+let state = null;
+let currentDate = todayStr();
+let db = null;
+let docRef = null;
+
+function todayStr(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+
+function defaultState(){
+  return {
+    students: ['정희훈','전형서','원수빈','김태윤'],
+    target: 30,
+    records: {} // date -> ["000000000", "000000000", "000000000", "000000000"] (교시별 0/1, 길이 9)
+  };
+}
+
+function setStatus(mode, text){
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = 'status-dot' + (mode==='err' ? ' err' : mode==='wait' ? ' wait' : '');
+  txt.textContent = text;
+}
+
+function showSetupBanner(){
+  document.getElementById('setupBannerWrap').innerHTML = `
+    <div class="setup-banner">
+      <h2>⚠ 아직 데이터 저장소가 연결되지 않았어요</h2>
+      이 사이트는 Firebase(무료 클라우드 저장소)를 연결해야 여러 사람이 같은 기록을 볼 수 있어요.
+      <code>index.html</code> 상단의 <code>firebaseConfig</code> 부분에 본인의 Firebase 설정값을 넣어주세요. (자세한 방법은 함께 받은 안내를 참고해주세요.)
+    </div>`;
+}
+
+async function initFirebase(){
+  if(!isConfigured){
+    showSetupBanner();
+    setStatus('err', '설정 필요');
+    // 설정 전에도 화면은 볼 수 있도록 기본값으로 렌더
+    state = defaultState();
+    renderAll();
+    return;
+  }
+  try{
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    docRef = db.collection('attendance-tracker').doc('main');
+
+    docRef.onSnapshot(async (snap)=>{
+      if(snap.exists){
+        state = snap.data();
+        if(!state.students) state.students = defaultState().students;
+        if(!state.target) state.target = 30;
+        if(!state.records) state.records = {};
+      } else {
+        state = defaultState();
+        await docRef.set(state);
+      }
+      setStatus('ok', '동기화됨 · 실시간 저장 중');
+      renderAll();
+    }, (err)=>{
+      console.error(err);
+      setStatus('err', '연결 오류 · Firestore 규칙을 확인해주세요');
+    });
+  }catch(e){
+    console.error(e);
+    setStatus('err', '연결 실패');
+    state = defaultState();
+    renderAll();
+  }
+}
+
+async function persist(){
+  if(!isConfigured || !docRef){
+    setStatus('err', '저장 안 됨 · Firebase 미설정');
+    renderAll();
+    return;
+  }
+  try{
+    setStatus('wait', '저장 중…');
+    await docRef.set(state);
+    // 성공 시 onSnapshot이 다시 'ok' 상태로 갱신해줌
+  }catch(e){
+    console.error(e);
+    setStatus('err', '저장 실패 · 다시 시도해주세요');
+  }
+}
+
+function getDayRecord(date){
+  if(!state.records[date]){
+    state.records[date] = state.students.map(()=> '0'.repeat(9));
+  }
+  while(state.records[date].length < state.students.length){
+    state.records[date].push('0'.repeat(9));
+  }
+  return state.records[date];
+}
+
+function studentTotal(idx){
+  let total = 0;
+  for(const date in state.records){
+    const row = state.records[date][idx];
+    if(row) total += countWorked(row);
+  }
+  return total;
+}
+
+function dayTotal(date){
+  const rec = state.records[date];
+  if(!rec) return 0;
+  return rec.reduce((sum,row)=>sum + countWorked(row), 0);
+}
+
+/* ---------- Rendering ---------- */
+
+function renderAll(){
+  if(!state) return;
+  document.getElementById('datePicker').value = currentDate;
+  renderGrid();
+  renderSummary();
+  renderRecordsList();
+}
+
+function renderGrid(){
+  const table = document.getElementById('gridTable');
+  const rec = getDayRecord(currentDate);
+  let html = '<thead><tr><th class="student-col">학생</th>';
+  PERIODS.forEach(i=>{
+    const {no,time} = periodLabel(i);
+    const lunchTag = i===LUNCH_INDEX ? '<span class="period-time" style="color:var(--stamp);font-weight:700;">점심시간</span>' : '';
+    html += `<th${i===LUNCH_INDEX?' class="lunch-head"':''}><span class="period-no">${no}</span><span class="period-time">${time}</span>${lunchTag}</th>`;
+  });
+  html += '<th style="min-width:64px;">합계</th></tr></thead><tbody>';
+  state.students.forEach((name, sIdx)=>{
+    html += `<tr><th class="student-col">${escapeHtml(name)}</th>`;
+    PERIODS.forEach(pIdx=>{
+      if(pIdx === LUNCH_INDEX){
+        html += `<td class="cell lunch-cell"><div class="lunch-mark">점심</div></td>`;
+        return;
+      }
+      const on = rec[sIdx][pIdx] === '1';
+      html += `<td class="cell" data-s="${sIdx}" data-p="${pIdx}"><div class="stamp ${on?'on':''}">${on?'✓':''}</div></td>`;
+    });
+    const total = countWorked(rec[sIdx]);
+    html += `<td class="daytotal">${total}시간</td></tr>`;
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+
+  table.querySelectorAll('td.cell:not(.lunch-cell)').forEach(td=>{
+    td.addEventListener('click', async ()=>{
+      const sIdx = +td.dataset.s;
+      const pIdx = +td.dataset.p;
+      const rec = getDayRecord(currentDate);
+      const chars = rec[sIdx].split('');
+      chars[pIdx] = chars[pIdx] === '1' ? '0' : '1';
+      rec[sIdx] = chars.join('');
+      renderAll();
+      await persist();
+    });
+  });
+
+  document.getElementById('gridTitle').textContent = `교시별 출근 체크 — ${currentDate}`;
+  document.getElementById('dayTotalLabel').textContent = `이 날 합계: ${dayTotal(currentDate)}시간`;
+}
+
+function renderSummary(){
+  const wrap = document.getElementById('summaryGrid');
+  let html = '';
+  state.students.forEach((name, idx)=>{
+    const total = studentTotal(idx);
+    const target = state.target || 30;
+    const pct = Math.min(100, Math.round((total/target)*100));
+    const complete = total >= target;
+    html += `
+      <div class="stu-card">
+        <div class="stu-name"><span>${escapeHtml(name)}</span><span class="pct">${pct}%</span></div>
+        <div class="bar-track"><div class="bar-fill ${complete?'complete':''}" style="width:${pct}%"></div></div>
+        <div class="stu-hours"><b>${total}</b> / ${target}시간</div>
+        ${complete ? '<div class="complete-tag">✓ 목표 시간 충족</div>' : ''}
+      </div>`;
+  });
+  wrap.innerHTML = html;
+}
+
+function renderRecordsList(){
+  const body = document.getElementById('recordsBody');
+  const dates = Object.keys(state.records).sort().reverse();
+  if(dates.length===0){
+    body.innerHTML = `<tr><td colspan="3" class="empty-note">아직 기록된 날짜가 없습니다.</td></tr>`;
+    return;
+  }
+  body.innerHTML = dates.map(date=>{
+    const total = dayTotal(date);
+    return `<tr>
+      <td><button class="rec-date-btn" data-date="${date}">${date}</button></td>
+      <td>${total}시간</td>
+      <td><button class="del-btn" data-del="${date}">삭제</button></td>
+    </tr>`;
+  }).join('');
+
+  body.querySelectorAll('.rec-date-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      currentDate = btn.dataset.date;
+      renderAll();
+    });
+  });
+  body.querySelectorAll('.del-btn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const date = btn.dataset.del;
+      if(confirm(`${date} 기록을 삭제할까요?`)){
+        delete state.records[date];
+        renderAll();
+        await persist();
+      }
+    });
+  });
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------- Date nav ---------- */
+document.getElementById('prevDay').addEventListener('click', ()=>{
+  const d = new Date(currentDate);
+  d.setDate(d.getDate()-1);
+  currentDate = d.toISOString().slice(0,10);
+  renderAll();
+});
+document.getElementById('nextDay').addEventListener('click', ()=>{
+  const d = new Date(currentDate);
+  d.setDate(d.getDate()+1);
+  currentDate = d.toISOString().slice(0,10);
+  renderAll();
+});
+document.getElementById('gotoToday').addEventListener('click', ()=>{
+  currentDate = todayStr();
+  renderAll();
+});
+document.getElementById('datePicker').addEventListener('change', (e)=>{
+  currentDate = e.target.value;
+  renderAll();
+});
+
+/* ---------- Settings modal ---------- */
+const overlay = document.getElementById('overlay');
+document.getElementById('openSettings').addEventListener('click', ()=>{
+  state.students.forEach((n,i)=>{ document.getElementById('name'+i).value = n; });
+  document.getElementById('targetInput').value = state.target;
+  overlay.classList.add('show');
+});
+document.getElementById('cancelSettings').addEventListener('click', ()=>{
+  overlay.classList.remove('show');
+});
+overlay.addEventListener('click', (e)=>{ if(e.target===overlay) overlay.classList.remove('show'); });
+
+document.getElementById('saveSettings').addEventListener('click', async ()=>{
+  for(let i=0;i<4;i++){
+    const val = document.getElementById('name'+i).value.trim();
+    state.students[i] = val || `근로학생${i+1}`;
+  }
+  const t = parseInt(document.getElementById('targetInput').value, 10);
+  state.target = (t && t>0) ? t : 30;
+  overlay.classList.remove('show');
+  renderAll();
+  await persist();
+});
+
+/* ---------- Init ---------- */
+initFirebase();
+</script>
+</body>
+</html>
