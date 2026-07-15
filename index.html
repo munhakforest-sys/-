@@ -23,6 +23,7 @@
     --stamp:#B3282D;
     --stamp-dark:#8C1F23;
     --gold:#A6791F;
+    --shift:#2E6E8E;
     --white:#FFFFFF;
     --card-shadow: 0 1px 2px rgba(31,42,68,0.06), 0 8px 24px rgba(31,42,68,0.06);
   }
@@ -48,11 +49,14 @@
     color:var(--stamp);font-weight:600;margin-bottom:4px;
   }
   h1{font-family:'Noto Serif KR', serif;font-weight:900;font-size:28px;margin:0;letter-spacing:-0.01em;}
+  .header-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .settings-btn{
     background:var(--ink);color:var(--paper);border:none;font-family:'Noto Sans KR',sans-serif;
     font-size:13px;font-weight:700;padding:9px 16px;border-radius:3px;cursor:pointer;letter-spacing:.02em;
   }
   .settings-btn:hover{background:var(--ink-soft);}
+  .settings-btn.schedule-btn{background:var(--shift);}
+  .settings-btn.schedule-btn:hover{background:#255A73;}
 
   .status-pill{
     display:inline-flex;align-items:center;gap:6px;
@@ -101,6 +105,7 @@
   th.lunch-head{background:#EFE7DC;}
   td.cell{width:56px;height:56px;cursor:pointer;position:relative;transition:background .1s;}
   td.cell:hover{background:#FBF3E9;}
+  td.cell.scheduled{box-shadow: inset 0 0 0 2px rgba(166,121,31,0.5);}
   td.lunch-cell{
     cursor:default;
     background:repeating-linear-gradient(135deg, #F1ECE0, #F1ECE0 6px, #E8E1D2 6px, #E8E1D2 12px);
@@ -113,8 +118,16 @@
     box-shadow:0 0 0 1px rgba(179,40,45,0.08);opacity:0;transition:opacity .08s, transform .08s;user-select:none;
   }
   .stamp.on{opacity:1;animation:stampIn .18s ease-out;}
+  .stamp.diff{border-color:var(--shift);color:var(--shift);box-shadow:0 0 0 1px rgba(46,110,142,0.12);}
   @keyframes stampIn{0%{transform:rotate(-8deg) scale(1.5);opacity:0;}100%{transform:rotate(-8deg) scale(1);opacity:1;}}
   .daytotal{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);font-weight:600;}
+
+  .legend{display:flex;gap:18px;margin-top:14px;flex-wrap:wrap;}
+  .legend-item{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-soft);}
+  .legend-swatch{width:14px;height:14px;display:inline-block;flex:none;}
+  .swatch-scheduled{border-radius:3px;box-shadow:inset 0 0 0 2px rgba(166,121,31,0.55);background:var(--white);border:1px solid var(--paper-line);}
+  .swatch-match{border-radius:50%;border:2.5px solid var(--stamp);background:var(--white);}
+  .swatch-diff{border-radius:50%;border:2.5px solid var(--shift);background:var(--white);}
 
   .summary-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(210px,1fr));gap:14px;margin-bottom:24px;}
   .stu-card{background:var(--white);border:1px solid var(--paper-line);box-shadow:var(--card-shadow);border-radius:5px;padding:16px 16px 14px;}
@@ -137,17 +150,36 @@
   .overlay{position:fixed;inset:0;background:rgba(31,42,68,0.45);display:none;align-items:center;justify-content:center;z-index:50;padding:16px;}
   .overlay.show{display:flex;}
   .modal{background:var(--white);border-radius:6px;max-width:440px;width:100%;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.25);max-height:90vh;overflow-y:auto;}
+  .modal.wide{max-width:640px;}
   .modal h3{font-family:'Noto Serif KR',serif;margin:0 0 16px;font-size:18px;border-bottom:2px solid var(--ink);padding-bottom:10px;}
   .modal label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:4px;font-weight:700;}
   .modal input[type=text], .modal input[type=number]{
     width:100%;padding:8px 10px;margin-bottom:12px;border:1px solid var(--paper-line);border-radius:3px;
     font-family:'Noto Sans KR',sans-serif;font-size:13px;
   }
+  .modal input[type=month]{
+    width:auto;min-width:160px;padding:8px 10px;margin-bottom:14px;border:1px solid var(--paper-line);border-radius:3px;
+    font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink);background:var(--paper);
+  }
   .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:6px;}
   .modal-actions button{padding:8px 16px;border-radius:3px;font-size:13px;font-weight:700;cursor:pointer;}
   .btn-cancel{background:var(--paper);border:1px solid var(--paper-line);color:var(--ink);}
   .btn-save{background:var(--ink);border:1px solid var(--ink);color:var(--white);}
   .note{font-size:11.5px;color:var(--ink-faint);margin-top:-6px;margin-bottom:14px;line-height:1.5;}
+
+  /* Schedule editor modal */
+  #scheduleTabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+  .sched-tab{padding:6px 13px;border:1px solid var(--paper-line);background:var(--paper);border-radius:20px;
+    font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:700;cursor:pointer;color:var(--ink-soft);}
+  .sched-tab.active{background:var(--shift);color:var(--white);border-color:var(--shift);}
+  table.sched-grid{border-collapse:collapse;width:100%;min-width:460px;}
+  table.sched-grid th, table.sched-grid td{border:1px solid var(--paper-line);text-align:center;padding:0;font-size:12px;}
+  table.sched-grid thead th{background:var(--paper);padding:6px 2px;font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--ink-soft);}
+  th.sched-period-label{font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--paper);padding:6px 8px;text-align:left;color:var(--ink-soft);white-space:nowrap;}
+  td.sched-cell{cursor:pointer;height:34px;color:var(--shift);font-weight:900;font-size:14px;transition:background .1s;}
+  td.sched-cell:hover{background:#EFF5F8;}
+  td.sched-cell.on{background:rgba(46,110,142,0.12);}
+  td.sched-lunch{cursor:default;background:repeating-linear-gradient(135deg, #F1ECE0, #F1ECE0 6px, #E8E1D2 6px, #E8E1D2 12px);color:var(--ink-faint);font-size:10px;}
 
   /* Setup banner (shown when firebaseConfig isn't filled in yet) */
   .setup-banner{
@@ -167,8 +199,9 @@
       <div class="eyebrow">WORK-STUDY ATTENDANCE LEDGER</div>
       <h1>인문사회관 근로학생 출퇴근 관리 시스템</h1>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;">
+    <div class="header-actions">
       <span class="status-pill" id="statusPill"><span class="status-dot wait" id="statusDot"></span><span id="statusText">연결 중…</span></span>
+      <button class="settings-btn schedule-btn" id="openSchedule">🗓 근로 시간표 설정</button>
       <button class="settings-btn" id="openSettings">⚙ 학생·목표시간 설정</button>
     </div>
   </header>
@@ -186,6 +219,11 @@
   <div class="card">
     <h2 id="gridTitle">교시별 출근 체크</h2>
     <table class="grid" id="gridTable"></table>
+    <div class="legend">
+      <span class="legend-item"><span class="legend-swatch swatch-scheduled"></span>정규 근무 시간(시간표)</span>
+      <span class="legend-item"><span class="legend-swatch swatch-match"></span>시간표대로 출근 체크</span>
+      <span class="legend-item"><span class="legend-swatch swatch-diff"></span>시간표와 다른 시간에 출근 체크</span>
+    </div>
   </div>
 
   <div class="card">
@@ -216,6 +254,23 @@
     <div class="modal-actions">
       <button class="btn-cancel" id="cancelSettings">취소</button>
       <button class="btn-save" id="saveSettings">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="scheduleOverlay">
+  <div class="modal wide">
+    <h3>학생별 근로 시간표 설정</h3>
+    <div class="note">시간표는 <b>달마다 따로</b> 설정돼요. 아래에서 설정할 달을 고른 뒤, 학생을 선택해서 정규 근무 교시를 체크하세요. 새로운 달은 항상 빈 시간표로 시작하며, 이전 달 내용은 자동으로 복사되지 않습니다. 실제 출근 체크가 그 달의 시간표와 다르면 메인 화면에서 <b style="color:var(--shift);">파란색 도장</b>으로 표시돼요.</div>
+    <label>설정할 달</label>
+    <input type="month" id="scheduleMonthPicker">
+    <div id="scheduleTabs"></div>
+    <div style="overflow-x:auto;">
+      <table class="sched-grid" id="scheduleGridTable"></table>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="cancelSchedule">취소</button>
+      <button class="btn-save" id="saveSchedule">저장</button>
     </div>
   </div>
 </div>
@@ -252,10 +307,17 @@ function countWorked(rowStr){
   return c;
 }
 
+// 요일: JS Date.getDay() 기준 0=일,1=월,2=화,3=수,4=목,5=금,6=토
+const DOW_ORDER = [1,2,3,4,5,6,0]; // 월~일 순서로 표시
+const DOW_LABEL = {0:'일',1:'월',2:'화',3:'수',4:'목',5:'금',6:'토'};
+
 let state = null;
 let currentDate = todayStr();
 let db = null;
 let docRef = null;
+let scheduleDraft = {};
+let scheduleActiveMonth = '';
+let scheduleActiveStudent = 0;
 
 function todayStr(){
   const d = new Date();
@@ -269,7 +331,8 @@ function defaultState(){
   return {
     students: ['정희훈','전형서','원수빈','김태윤'],
     target: 30,
-    records: {} // date -> ["000000000", "000000000", "000000000", "000000000"] (교시별 0/1, 길이 9)
+    records: {}, // date -> ["000000000", ...] (교시별 0/1, 길이 9)
+    schedule: {} // yearMonth("YYYY-MM") -> studentIdx -> { dow(0~6): "000000000" } 그 달의 근무 시간표
   };
 }
 
@@ -309,6 +372,7 @@ async function initFirebase(){
         if(!state.students) state.students = defaultState().students;
         if(!state.target) state.target = 30;
         if(!state.records) state.records = {};
+        if(!state.schedule) state.schedule = {};
       } else {
         state = defaultState();
         await docRef.set(state);
@@ -353,6 +417,12 @@ function getDayRecord(date){
   return state.records[date];
 }
 
+/* 특정 달, 특정 학생의 특정 요일 근무 시간표 (그 달에 설정이 없으면 전부 0 = 빈 시간표) */
+function getStudentSchedule(sIdx, dow, yearMonth){
+  const m = state.schedule && state.schedule[yearMonth];
+  return (m && m[sIdx] && m[sIdx][dow]) || '0'.repeat(9);
+}
+
 /* ---- 월별 누적 계산 ----
    yearMonth 인자("YYYY-MM")를 주면 그 달의 기록만 합산합니다.
    인자를 생략하면(과거 호환용) 전체 기간을 합산합니다. */
@@ -385,6 +455,9 @@ function renderAll(){
 function renderGrid(){
   const table = document.getElementById('gridTable');
   const rec = getDayRecord(currentDate);
+  const dow = new Date(currentDate + 'T00:00:00').getDay();
+  const gridYearMonth = currentDate.slice(0,7);
+
   let html = '<thead><tr><th class="student-col">학생</th>';
   PERIODS.forEach(i=>{
     const {no,time} = periodLabel(i);
@@ -393,6 +466,7 @@ function renderGrid(){
   });
   html += '<th style="min-width:64px;">합계</th></tr></thead><tbody>';
   state.students.forEach((name, sIdx)=>{
+    const sched = getStudentSchedule(sIdx, dow, gridYearMonth);
     html += `<tr><th class="student-col">${escapeHtml(name)}</th>`;
     PERIODS.forEach(pIdx=>{
       if(pIdx === LUNCH_INDEX){
@@ -400,7 +474,11 @@ function renderGrid(){
         return;
       }
       const on = rec[sIdx][pIdx] === '1';
-      html += `<td class="cell" data-s="${sIdx}" data-p="${pIdx}"><div class="stamp ${on?'on':''}">${on?'✓':''}</div></td>`;
+      const scheduled = sched[pIdx] === '1';
+      const diff = on && !scheduled; // 시간표와 다른 시간에 체크됨
+      const cellClass = 'cell' + (scheduled ? ' scheduled' : '');
+      const stampClass = 'stamp' + (on?' on':'') + (diff?' diff':'');
+      html += `<td class="${cellClass}" data-s="${sIdx}" data-p="${pIdx}"><div class="${stampClass}">${on?'✓':''}</div></td>`;
     });
     const total = countWorked(rec[sIdx]);
     html += `<td class="daytotal">${total}시간</td></tr>`;
@@ -421,7 +499,7 @@ function renderGrid(){
     });
   });
 
-  document.getElementById('gridTitle').textContent = `교시별 출근 체크 — ${currentDate}`;
+  document.getElementById('gridTitle').textContent = `교시별 출근 체크 — ${currentDate} (${DOW_LABEL[dow]}요일)`;
   document.getElementById('dayTotalLabel').textContent = `이 날 합계: ${dayTotal(currentDate)}시간`;
 }
 
@@ -508,7 +586,7 @@ document.getElementById('datePicker').addEventListener('change', (e)=>{
   renderAll();
 });
 
-/* ---------- Settings modal ---------- */
+/* ---------- Settings modal (학생 이름 / 목표시간) ---------- */
 const overlay = document.getElementById('overlay');
 document.getElementById('openSettings').addEventListener('click', ()=>{
   state.students.forEach((n,i)=>{ document.getElementById('name'+i).value = n; });
@@ -528,6 +606,95 @@ document.getElementById('saveSettings').addEventListener('click', async ()=>{
   const t = parseInt(document.getElementById('targetInput').value, 10);
   state.target = (t && t>0) ? t : 30;
   overlay.classList.remove('show');
+  renderAll();
+  await persist();
+});
+
+/* ---------- Schedule modal (근로 시간표) ---------- */
+const scheduleOverlay = document.getElementById('scheduleOverlay');
+
+function ensureScheduleDraftStudent(yearMonth, sIdx){
+  if(!scheduleDraft[yearMonth]) scheduleDraft[yearMonth] = {}; // 새 달 = 빈 시간표로 시작
+  if(!scheduleDraft[yearMonth][sIdx]) scheduleDraft[yearMonth][sIdx] = {};
+  DOW_ORDER.forEach(dow=>{
+    if(!scheduleDraft[yearMonth][sIdx][dow]) scheduleDraft[yearMonth][sIdx][dow] = '0'.repeat(9);
+  });
+}
+
+function openScheduleModal(){
+  scheduleDraft = JSON.parse(JSON.stringify(state.schedule || {}));
+  scheduleActiveMonth = currentDate.slice(0,7); // 지금 보고 있는 날짜의 달을 기본으로 열기
+  scheduleActiveStudent = 0;
+  document.getElementById('scheduleMonthPicker').value = scheduleActiveMonth;
+  renderScheduleTabs();
+  renderScheduleGrid();
+  scheduleOverlay.classList.add('show');
+}
+
+function renderScheduleTabs(){
+  const wrap = document.getElementById('scheduleTabs');
+  wrap.innerHTML = state.students.map((name,i)=>
+    `<button class="sched-tab ${i===scheduleActiveStudent?'active':''}" data-i="${i}">${escapeHtml(name)}</button>`
+  ).join('');
+  wrap.querySelectorAll('.sched-tab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      scheduleActiveStudent = +btn.dataset.i;
+      renderScheduleTabs();
+      renderScheduleGrid();
+    });
+  });
+}
+
+function renderScheduleGrid(){
+  ensureScheduleDraftStudent(scheduleActiveMonth, scheduleActiveStudent);
+  const table = document.getElementById('scheduleGridTable');
+  let html = '<thead><tr><th></th>';
+  DOW_ORDER.forEach(dow=>{ html += `<th>${DOW_LABEL[dow]}</th>`; });
+  html += '</tr></thead><tbody>';
+  PERIODS.forEach(pIdx=>{
+    const {no} = periodLabel(pIdx);
+    html += `<tr><th class="sched-period-label">${no}</th>`;
+    if(pIdx === LUNCH_INDEX){
+      DOW_ORDER.forEach(()=>{ html += `<td class="sched-cell sched-lunch">점심</td>`; });
+    } else {
+      DOW_ORDER.forEach(dow=>{
+        const on = scheduleDraft[scheduleActiveMonth][scheduleActiveStudent][dow][pIdx] === '1';
+        html += `<td class="sched-cell ${on?'on':''}" data-dow="${dow}" data-p="${pIdx}">${on?'●':''}</td>`;
+      });
+    }
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+
+  table.querySelectorAll('.sched-cell:not(.sched-lunch)').forEach(td=>{
+    td.addEventListener('click', ()=>{
+      const dow = +td.dataset.dow;
+      const pIdx = +td.dataset.p;
+      const chars = scheduleDraft[scheduleActiveMonth][scheduleActiveStudent][dow].split('');
+      chars[pIdx] = chars[pIdx]==='1' ? '0' : '1';
+      scheduleDraft[scheduleActiveMonth][scheduleActiveStudent][dow] = chars.join('');
+      renderScheduleGrid();
+    });
+  });
+}
+
+document.getElementById('scheduleMonthPicker').addEventListener('change', (e)=>{
+  if(!e.target.value) return;
+  scheduleActiveMonth = e.target.value;
+  ensureScheduleDraftStudent(scheduleActiveMonth, scheduleActiveStudent);
+  renderScheduleGrid();
+});
+
+document.getElementById('openSchedule').addEventListener('click', openScheduleModal);
+document.getElementById('cancelSchedule').addEventListener('click', ()=>{
+  scheduleOverlay.classList.remove('show');
+});
+scheduleOverlay.addEventListener('click', (e)=>{ if(e.target===scheduleOverlay) scheduleOverlay.classList.remove('show'); });
+
+document.getElementById('saveSchedule').addEventListener('click', async ()=>{
+  state.schedule = scheduleDraft;
+  scheduleOverlay.classList.remove('show');
   renderAll();
   await persist();
 });
