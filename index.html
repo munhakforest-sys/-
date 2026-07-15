@@ -122,6 +122,35 @@
   @keyframes stampIn{0%{transform:rotate(-8deg) scale(1.5);opacity:0;}100%{transform:rotate(-8deg) scale(1);opacity:1;}}
   .daytotal{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);font-weight:600;}
 
+  /* 모바일: 좁은 화면에서는 가로 스크롤 표 대신 접히는 칩(chip) 형태로 표시 */
+  .mobile-grid{display:none;}
+  @media (max-width: 700px){
+    table.grid{display:none;}
+    .mobile-grid{display:block;}
+    .card{padding:16px;}
+  }
+  .mobile-student{padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--paper-line);}
+  .mobile-student:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+  .mobile-student-name{
+    display:flex;justify-content:space-between;align-items:baseline;
+    font-family:'Noto Serif KR',serif;font-weight:700;font-size:15px;margin-bottom:10px;color:var(--ink);
+  }
+  .mobile-student-name .mobile-daytotal{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);font-weight:600;}
+  .mobile-periods{display:flex;flex-wrap:wrap;gap:7px;}
+  .mobile-chip{
+    flex:1 1 auto;min-width:52px;max-width:80px;padding:8px 4px;border-radius:6px;border:1.5px solid var(--paper-line);
+    text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:700;color:var(--ink-soft);
+    background:var(--white);cursor:pointer;user-select:none;transition:transform .05s;
+  }
+  .mobile-chip:active{transform:scale(0.95);}
+  .mobile-chip.scheduled{border-color:rgba(166,121,31,0.6);box-shadow:inset 0 0 0 1.5px rgba(166,121,31,0.4);}
+  .mobile-chip.on{background:var(--stamp);border-color:var(--stamp);color:var(--white);}
+  .mobile-chip.on.diff{background:var(--shift);border-color:var(--shift);}
+  .mobile-chip.lunch{
+    cursor:default;color:var(--ink-faint);border-style:dashed;
+    background:repeating-linear-gradient(135deg, #F1ECE0, #F1ECE0 6px, #E8E1D2 6px, #E8E1D2 12px);
+  }
+
   .legend{display:flex;gap:18px;margin-top:14px;flex-wrap:wrap;}
   .legend-item{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-soft);}
   .legend-swatch{width:14px;height:14px;display:inline-block;flex:none;}
@@ -219,6 +248,7 @@
   <div class="card">
     <h2 id="gridTitle">교시별 출근 체크</h2>
     <table class="grid" id="gridTable"></table>
+    <div class="mobile-grid" id="gridMobile"></div>
     <div class="legend">
       <span class="legend-item"><span class="legend-swatch swatch-scheduled"></span>정규 근무 시간(시간표)</span>
       <span class="legend-item"><span class="legend-swatch swatch-match"></span>시간표대로 출근 체크</span>
@@ -487,20 +517,49 @@ function renderGrid(){
   table.innerHTML = html;
 
   table.querySelectorAll('td.cell:not(.lunch-cell)').forEach(td=>{
-    td.addEventListener('click', async ()=>{
-      const sIdx = +td.dataset.s;
-      const pIdx = +td.dataset.p;
-      const rec = getDayRecord(currentDate);
-      const chars = rec[sIdx].split('');
-      chars[pIdx] = chars[pIdx] === '1' ? '0' : '1';
-      rec[sIdx] = chars.join('');
-      renderAll();
-      await persist();
-    });
+    td.addEventListener('click', ()=> toggleCell(+td.dataset.s, +td.dataset.p));
   });
 
   document.getElementById('gridTitle').textContent = `교시별 출근 체크 — ${currentDate} (${DOW_LABEL[dow]}요일)`;
   document.getElementById('dayTotalLabel').textContent = `이 날 합계: ${dayTotal(currentDate)}시간`;
+
+  renderGridMobile(rec, dow, gridYearMonth);
+}
+
+async function toggleCell(sIdx, pIdx){
+  const rec = getDayRecord(currentDate);
+  const chars = rec[sIdx].split('');
+  chars[pIdx] = chars[pIdx] === '1' ? '0' : '1';
+  rec[sIdx] = chars.join('');
+  renderAll();
+  await persist();
+}
+
+function renderGridMobile(rec, dow, gridYearMonth){
+  const wrap = document.getElementById('gridMobile');
+  let html = '';
+  state.students.forEach((name, sIdx)=>{
+    const sched = getStudentSchedule(sIdx, dow, gridYearMonth);
+    const total = countWorked(rec[sIdx]);
+    html += `<div class="mobile-student"><div class="mobile-student-name"><span>${escapeHtml(name)}</span><span class="mobile-daytotal">${total}시간</span></div><div class="mobile-periods">`;
+    PERIODS.forEach(pIdx=>{
+      const {no} = periodLabel(pIdx);
+      if(pIdx === LUNCH_INDEX){
+        html += `<div class="mobile-chip lunch">점심</div>`;
+        return;
+      }
+      const on = rec[sIdx][pIdx] === '1';
+      const scheduled = sched[pIdx] === '1';
+      const diff = on && !scheduled;
+      const cls = 'mobile-chip' + (scheduled?' scheduled':'') + (on?' on':'') + (diff?' diff':'');
+      html += `<div class="${cls}" data-s="${sIdx}" data-p="${pIdx}">${no}</div>`;
+    });
+    html += `</div></div>`;
+  });
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.mobile-chip:not(.lunch)').forEach(chip=>{
+    chip.addEventListener('click', ()=> toggleCell(+chip.dataset.s, +chip.dataset.p));
+  });
 }
 
 function renderSummary(){
