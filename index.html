@@ -189,7 +189,7 @@
   </div>
 
   <div class="card">
-    <h2>학생별 누적 시간 (목표 대비)</h2>
+    <h2 id="summaryTitle">학생별 누적 시간 (목표 대비)</h2>
     <div class="summary-grid" id="summaryGrid"></div>
   </div>
 
@@ -210,9 +210,9 @@
     <input type="text" id="name1" placeholder="전형서">
     <input type="text" id="name2" placeholder="원수빈">
     <input type="text" id="name3" placeholder="김태윤">
-    <label>목표 누적 시간 (시간)</label>
+    <label>목표 누적 시간 (시간, 월 기준)</label>
     <input type="number" id="targetInput" min="1" step="1">
-    <div class="note">이 사이트 링크를 아는 사람은 누구나 데이터를 보고 체크할 수 있어요. 링크는 필요한 사람에게만 공유해주세요.</div>
+    <div class="note">이 사이트 링크를 아는 사람은 누구나 데이터를 보고 체크할 수 있어요. 링크는 필요한 사람에게만 공유해주세요. 목표 시간은 매월 동일하게 적용됩니다.</div>
     <div class="modal-actions">
       <button class="btn-cancel" id="cancelSettings">취소</button>
       <button class="btn-save" id="saveSettings">저장</button>
@@ -353,9 +353,13 @@ function getDayRecord(date){
   return state.records[date];
 }
 
-function studentTotal(idx){
+/* ---- 월별 누적 계산 ----
+   yearMonth 인자("YYYY-MM")를 주면 그 달의 기록만 합산합니다.
+   인자를 생략하면(과거 호환용) 전체 기간을 합산합니다. */
+function studentTotal(idx, yearMonth){
   let total = 0;
   for(const date in state.records){
+    if(yearMonth && !date.startsWith(yearMonth)) continue;
     const row = state.records[date][idx];
     if(row) total += countWorked(row);
   }
@@ -423,9 +427,13 @@ function renderGrid(){
 
 function renderSummary(){
   const wrap = document.getElementById('summaryGrid');
+  const yearMonth = currentDate.slice(0,7); // "YYYY-MM"
+  const [y, m] = yearMonth.split('-');
+  document.getElementById('summaryTitle').textContent = `${y}년 ${m}월 누적 시간 (목표 대비)`;
+
   let html = '';
   state.students.forEach((name, idx)=>{
-    const total = studentTotal(idx);
+    const total = studentTotal(idx, yearMonth);
     const target = state.target || 30;
     const pct = Math.min(100, Math.round((total/target)*100));
     const complete = total >= target;
