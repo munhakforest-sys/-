@@ -129,6 +129,9 @@
     .mobile-grid{display:block;}
     .card{padding:16px;}
   }
+  body.force-mobile table.grid{display:none;}
+  body.force-mobile .mobile-grid{display:block;}
+  body.force-mobile .wrap{max-width:420px;}
   .mobile-student{padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--paper-line);}
   .mobile-student:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
   .mobile-student-name{
@@ -232,6 +235,7 @@
       <span class="status-pill" id="statusPill"><span class="status-dot wait" id="statusDot"></span><span id="statusText">연결 중…</span></span>
       <button class="settings-btn schedule-btn" id="openSchedule">🗓 근로 시간표 설정</button>
       <button class="settings-btn" id="openSettings">⚙ 학생·목표시간 설정</button>
+      <button class="settings-btn" id="toggleMobileView" style="background:var(--ink-soft);">📱 모바일 보기 전환</button>
     </div>
   </header>
 
@@ -759,6 +763,9 @@ document.getElementById('saveSchedule').addEventListener('click', async ()=>{
 });
 
 /* ---------- Init ---------- */
+document.getElementById('toggleMobileView').addEventListener('click', ()=>{
+  document.body.classList.toggle('force-mobile');
+});
 initFirebase();
 </script>
 </body>
