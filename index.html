@@ -172,6 +172,11 @@
   .swatch-changed{border-radius:3px;box-shadow:inset 0 0 0 2px var(--shift);background:var(--white);border:1px solid var(--paper-line);}
 
   .today-changes{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px;}
+  .holiday-notice{
+    display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:700;
+    color:var(--stamp);background:rgba(179,40,45,0.08);border:1px solid rgba(179,40,45,0.3);padding:5px 10px;border-radius:20px;
+    margin-bottom:10px;
+  }
   .today-change-chip{
     display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:700;
     color:var(--shift);background:rgba(46,110,142,0.1);border:1px solid rgba(46,110,142,0.35);padding:5px 10px;border-radius:20px;
@@ -210,6 +215,9 @@
   }
   .period-check input{margin:0;}
   .period-check.empty{color:var(--ink-faint);border-style:dashed;cursor:default;}
+  .period-check.duplicate{color:var(--ink-faint);border-style:dashed;cursor:default;}
+  .period-check.duplicate .dup-strike{text-decoration:line-through;text-decoration-thickness:1.5px;}
+  .period-check.duplicate b{color:var(--ink-soft);font-weight:700;}
   .changelog-save-row{display:flex;justify-content:flex-end;}
   .changelog-save-row button{
     background:var(--shift);color:var(--white);border:none;padding:9px 20px;border-radius:3px;font-weight:700;
@@ -304,6 +312,7 @@
 
   <div class="card">
     <h2 id="gridTitle">교시별 출근 체크</h2>
+    <div id="holidayNotice"></div>
     <div class="today-changes" id="todayChanges"></div>
     <table class="grid" id="gridTable"></table>
     <div class="mobile-grid" id="gridMobile"></div>
@@ -331,11 +340,13 @@
         <div class="changelog-block from">
           <h4>📌 원래 등록된 근무 날짜 · 시간</h4>
           <input type="date" id="changeFromDate">
+          <div style="font-size:10.5px;color:var(--ink-faint);margin:-6px 0 8px;">평일만 선택할 수 있어요 (주말·공휴일 제외)</div>
           <div class="period-check-list" id="changeFromPeriods"></div>
         </div>
         <div class="changelog-block to">
           <h4>🔁 변경할 근무 날짜 · 시간</h4>
           <input type="date" id="changeToDate">
+          <div style="font-size:10.5px;color:var(--ink-faint);margin:-6px 0 8px;">평일만 선택할 수 있어요 (주말·공휴일 제외)</div>
           <div class="period-check-list" id="changeToPeriods"></div>
         </div>
       </div>
@@ -461,6 +472,65 @@ function tomorrowStr(){
   return `${y}-${m}-${dd}`;
 }
 
+function isWeekend(dateStr){
+  const dow = new Date(dateStr+'T00:00:00').getDay();
+  return dow===0 || dow===6;
+}
+
+/* ---------- 대한민국 공휴일 (2026년 기준, 대체공휴일 포함) ----------
+   출처: 「관공서의 공휴일에 관한 규정」 기준 2026년 달력.
+   해가 바뀌면 이 목록에 새 연도의 날짜를 추가해주세요. */
+const KR_HOLIDAYS = {
+  "2026-01-01": "신정",
+  "2026-02-16": "설날 연휴",
+  "2026-02-17": "설날",
+  "2026-02-18": "설날 연휴",
+  "2026-03-01": "삼일절",
+  "2026-03-02": "대체공휴일(삼일절)",
+  "2026-05-01": "근로자의 날",
+  "2026-05-05": "어린이날",
+  "2026-05-24": "부처님오신날",
+  "2026-05-25": "대체공휴일(부처님오신날)",
+  "2026-06-03": "전국동시지방선거",
+  "2026-06-06": "현충일",
+  "2026-07-17": "제헌절",
+  "2026-08-15": "광복절",
+  "2026-08-17": "대체공휴일(광복절)",
+  "2026-09-24": "추석 연휴",
+  "2026-09-25": "추석",
+  "2026-09-26": "추석 연휴",
+  "2026-10-03": "개천절",
+  "2026-10-05": "대체공휴일(개천절)",
+  "2026-10-09": "한글날",
+  "2026-12-25": "크리스마스",
+  "2027-01-01": "신정"
+};
+
+function isHoliday(dateStr){
+  return !!KR_HOLIDAYS[dateStr];
+}
+function isNonWorkday(dateStr){
+  return isWeekend(dateStr) || isHoliday(dateStr);
+}
+function nonWorkdayReason(dateStr){
+  if(KR_HOLIDAYS[dateStr]) return KR_HOLIDAYS[dateStr];
+  if(isWeekend(dateStr)) return '주말';
+  return '';
+}
+function nextWorkday(dateStr){
+  const d = new Date(dateStr+'T00:00:00');
+  const fmt = (dt)=>{
+    const y=dt.getFullYear(), m=String(dt.getMonth()+1).padStart(2,'0'), dd=String(dt.getDate()).padStart(2,'0');
+    return `${y}-${m}-${dd}`;
+  };
+  let cur = fmt(d);
+  while(isNonWorkday(cur)){
+    d.setDate(d.getDate()+1);
+    cur = fmt(d);
+  }
+  return cur;
+}
+
 function defaultState(){
   return {
     students: ['정희훈','전형서','원수빈','김태윤'],
@@ -562,12 +632,21 @@ function getStudentSchedule(sIdx, dow, yearMonth){
 /* 특정 학생이 특정 날짜에 시간표상 근무하기로 되어있는 교시 목록 (점심 제외) */
 function getScheduledPeriodsForDate(sIdx, dateStr){
   if(!dateStr) return [];
+  if(isNonWorkday(dateStr)) return [];
   const dow = new Date(dateStr+'T00:00:00').getDay();
   const yearMonth = dateStr.slice(0,7);
   const sched = getStudentSchedule(sIdx, dow, yearMonth);
   const list = [];
   PERIODS.forEach(p=>{ if(p!==LUNCH_INDEX && sched[p]==='1') list.push(p); });
   return list;
+}
+
+/* 그리드에 실제로 반영할 시간표: 주말·공휴일에는 정규 근무 시간이 자동 배정되지 않음 */
+function getEffectiveDaySchedule(sIdx, dateStr){
+  if(isNonWorkday(dateStr)) return '0'.repeat(9);
+  const dow = new Date(dateStr+'T00:00:00').getDay();
+  const yearMonth = dateStr.slice(0,7);
+  return getStudentSchedule(sIdx, dow, yearMonth);
 }
 
 /* ---- 월별 누적 계산 ----
@@ -614,7 +693,7 @@ function renderGrid(){
   });
   html += '<th style="min-width:64px;">합계</th></tr></thead><tbody>';
   state.students.forEach((name, sIdx)=>{
-    const sched = getStudentSchedule(sIdx, dow, gridYearMonth);
+    const sched = getEffectiveDaySchedule(sIdx, currentDate);
     const studentChanges = changes.filter(c=>c.student===sIdx);
     html += `<tr><th class="student-col">${escapeHtml(name)}</th>`;
     PERIODS.forEach(pIdx=>{
@@ -646,8 +725,20 @@ function renderGrid(){
   document.getElementById('gridTitle').textContent = `교시별 출근 체크 — ${currentDate} (${DOW_LABEL[dow]}요일)`;
   document.getElementById('dayTotalLabel').textContent = `이 날 합계: ${dayTotal(currentDate)}시간`;
 
+  renderHolidayNotice();
   renderTodayChangesBanner();
   renderGridMobile(rec, dow, gridYearMonth);
+}
+
+function renderHolidayNotice(){
+  const wrap = document.getElementById('holidayNotice');
+  if(isHoliday(currentDate)){
+    wrap.innerHTML = `<span class="holiday-notice">🔴 ${escapeHtml(KR_HOLIDAYS[currentDate])} · 이 날은 근무일이 아니에요</span>`;
+  } else if(isWeekend(currentDate)){
+    wrap.innerHTML = `<span class="holiday-notice">🔴 주말 · 이 날은 근무일이 아니에요</span>`;
+  } else {
+    wrap.innerHTML = '';
+  }
 }
 
 function renderTodayChangesBanner(){
@@ -675,7 +766,7 @@ function renderGridMobile(rec, dow, gridYearMonth){
   const changes = state.changes || [];
   let html = '';
   state.students.forEach((name, sIdx)=>{
-    const sched = getStudentSchedule(sIdx, dow, gridYearMonth);
+    const sched = getEffectiveDaySchedule(sIdx, currentDate);
     const studentChanges = changes.filter(c=>c.student===sIdx);
     const total = countWorked(rec[sIdx]);
     html += `<div class="mobile-student"><div class="mobile-student-name"><span>${escapeHtml(name)}</span><span class="mobile-daytotal">${total}시간</span></div><div class="mobile-periods">`;
@@ -816,8 +907,8 @@ function renderScheduleGrid(){
   DOW_ORDER.forEach(dow=>{ html += `<th>${DOW_LABEL[dow]}</th>`; });
   html += '</tr></thead><tbody>';
   PERIODS.forEach(pIdx=>{
-    const {no} = periodLabel(pIdx);
-    html += `<tr><th class="sched-period-label">${no}</th>`;
+    const {no,time} = periodLabel(pIdx);
+    html += `<tr><th class="sched-period-label">${no} <span style="color:var(--ink-faint);font-weight:500;">(${time})</span></th>`;
     if(pIdx === LUNCH_INDEX){
       DOW_ORDER.forEach(()=>{ html += `<td class="sched-cell sched-lunch">점심</td>`; });
     } else {
@@ -893,20 +984,43 @@ function renderChangeFromPeriods(){
 
 function renderChangeToPeriods(){
   const wrap = document.getElementById('changeToPeriods');
+  const sIdx = +document.getElementById('changeStudentSelect').value;
   const dateStr = document.getElementById('changeToDate').value;
   if(!dateStr){
     wrap.innerHTML = `<span class="period-check empty">날짜를 먼저 선택하세요</span>`;
     return;
   }
+  const alreadyScheduled = getScheduledPeriodsForDate(sIdx, dateStr);
   wrap.innerHTML = periodListExcludingLunch().map(p=>{
     const {no,time} = periodLabel(p);
+    const disabled = alreadyScheduled.includes(p);
+    if(disabled){
+      return `<label class="period-check duplicate" title="이미 그 달 정규 근무 시간표에 있는 시간이라 선택할 수 없어요">
+        <input type="checkbox" class="to-p-check" value="${p}" disabled><span class="dup-strike">${no} (${time})</span> · <b>근무 시간과 중복</b>
+      </label>`;
+    }
     return `<label class="period-check"><input type="checkbox" class="to-p-check" value="${p}">${no} (${time})</label>`;
   }).join('');
 }
 
-document.getElementById('changeStudentSelect').addEventListener('change', renderChangeFromPeriods);
-document.getElementById('changeFromDate').addEventListener('change', renderChangeFromPeriods);
-document.getElementById('changeToDate').addEventListener('change', renderChangeToPeriods);
+document.getElementById('changeStudentSelect').addEventListener('change', ()=>{
+  renderChangeFromPeriods();
+  renderChangeToPeriods();
+});
+document.getElementById('changeFromDate').addEventListener('change', (e)=>{
+  if(e.target.value && isNonWorkday(e.target.value)){
+    alert(`${nonWorkdayReason(e.target.value)}에는 근로학생이 출근하지 않아 선택할 수 없어요. 평일(공휴일 제외)을 선택해주세요.`);
+    e.target.value = '';
+  }
+  renderChangeFromPeriods();
+});
+document.getElementById('changeToDate').addEventListener('change', (e)=>{
+  if(e.target.value && isNonWorkday(e.target.value)){
+    alert(`${nonWorkdayReason(e.target.value)}에는 근로학생이 출근하지 않아 선택할 수 없어요. 평일(공휴일 제외)을 선택해주세요.`);
+    e.target.value = '';
+  }
+  renderChangeToPeriods();
+});
 document.getElementById('saveChangeBtn').addEventListener('click', saveChangeRecord);
 
 async function saveChangeRecord(){
@@ -928,8 +1042,8 @@ async function saveChangeRecord(){
     createdAt: todayStr()
   });
 
-  document.getElementById('changeFromDate').value = todayStr();
-  document.getElementById('changeToDate').value = tomorrowStr();
+  document.getElementById('changeFromDate').value = nextWorkday(todayStr());
+  document.getElementById('changeToDate').value = nextWorkday(tomorrowStr());
 
   renderAll();
   await persist();
@@ -940,8 +1054,8 @@ function renderChangeLog(){
 
   const fromInput = document.getElementById('changeFromDate');
   const toInput = document.getElementById('changeToDate');
-  if(!fromInput.value) fromInput.value = todayStr();
-  if(!toInput.value) toInput.value = tomorrowStr();
+  if(!fromInput.value) fromInput.value = nextWorkday(todayStr());
+  if(!toInput.value) toInput.value = nextWorkday(tomorrowStr());
 
   renderChangeFromPeriods();
   renderChangeToPeriods();
@@ -1094,4 +1208,3 @@ initFirebase();
 </script>
 </body>
 </html>
-
