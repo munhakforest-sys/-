@@ -215,25 +215,35 @@
   }
   .period-check input{margin:0;}
   .period-check.empty{color:var(--ink-faint);border-style:dashed;cursor:default;}
+  .period-check.limit-disabled{opacity:0.4;cursor:not-allowed;}
   .period-check.duplicate{color:var(--ink-faint);border-style:dashed;cursor:default;}
   .period-check.duplicate .dup-strike{text-decoration:line-through;text-decoration-thickness:1.5px;}
   .period-check.duplicate b{color:var(--ink-soft);font-weight:700;}
-  .changelog-save-row{display:flex;justify-content:flex-end;}
+  .changelog-save-row{display:flex;justify-content:flex-end;gap:8px;}
   .changelog-save-row button{
     background:var(--shift);color:var(--white);border:none;padding:9px 20px;border-radius:3px;font-weight:700;
     font-size:13px;cursor:pointer;
   }
   .changelog-save-row button:hover{background:#255A73;}
+  .changelog-save-row .btn-cancel-edit{
+    background:var(--paper);border:1px solid var(--paper-line);color:var(--ink);
+  }
+  .changelog-save-row .btn-cancel-edit:hover{background:#EDEAE0;}
   .changelog-list-item{
     display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--paper-line);font-size:13px;
   }
   .changelog-list-item:last-child{border-bottom:none;}
+  .changelog-list-item.editing{background:rgba(46,110,142,0.06);border-radius:4px;padding-left:8px;padding-right:8px;}
   .changelog-tag{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;padding:3px 8px;border-radius:12px;}
   .changelog-tag.from{background:rgba(179,40,45,0.1);color:var(--stamp);}
   .changelog-tag.to{background:rgba(46,110,142,0.12);color:var(--shift);}
   .changelog-arrow{color:var(--ink-faint);}
   .changelog-name{font-weight:700;font-family:'Noto Serif KR',serif;}
-  .changelog-del{margin-left:auto;background:none;border:none;color:var(--stamp);cursor:pointer;font-size:12px;font-weight:700;}
+  .changelog-actions{margin-left:auto;display:flex;align-items:center;gap:10px;}
+  .changelog-edit{background:none;border:none;color:var(--shift);cursor:pointer;font-size:12px;font-weight:700;}
+  .changelog-edit:hover{text-decoration:underline;}
+  .changelog-del{background:none;border:none;color:var(--stamp);cursor:pointer;font-size:12px;font-weight:700;}
+  .changelog-del:hover{text-decoration:underline;}
   .empty-note{color:var(--ink-faint);font-size:13px;padding:6px 0;}
 
   .overlay{position:fixed;inset:0;background:rgba(31,42,68,0.45);display:none;align-items:center;justify-content:center;z-index:50;padding:16px;}
@@ -264,7 +274,16 @@
   #scheduleTabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
   .sched-tab{padding:6px 13px;border:1px solid var(--paper-line);background:var(--paper);border-radius:20px;
     font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:700;cursor:pointer;color:var(--ink-soft);}
+  .sched-tab.summary-tab{background:rgba(166,121,31,0.12);color:var(--gold);border-color:rgba(166,121,31,0.4);}
+  .sched-tab.download-tab{background:rgba(60,138,94,0.12);color:#2F6E49;border-color:rgba(60,138,94,0.4);}
+  .sched-tab.download-tab:hover{background:#3C8A5E;color:var(--white);border-color:#3C8A5E;}
   .sched-tab.active{background:var(--shift);color:var(--white);border-color:var(--shift);}
+  .sched-summary-cell{cursor:default;vertical-align:top;padding:3px !important;height:auto;}
+  .sched-summary-cell:hover{background:none;}
+  .summary-name-chip{
+    font-family:'Noto Sans KR',sans-serif;font-size:10px;font-weight:700;color:var(--white);
+    border-radius:3px;padding:2px 4px;margin:1.5px auto;line-height:1.3;max-width:72px;
+  }
   table.sched-grid{border-collapse:collapse;width:100%;min-width:460px;}
   table.sched-grid th, table.sched-grid td{border:1px solid var(--paper-line);text-align:center;padding:0;font-size:12px;}
   table.sched-grid thead th{background:var(--paper);padding:6px 2px;font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--ink-soft);}
@@ -330,7 +349,7 @@
   </div>
 
   <div class="card" id="changeLogCard">
-    <h2>시간표 변동사항</h2>
+    <h2 id="changeLogTitle">시간표 변동사항</h2>
     <div class="changelog-form">
       <div>
         <label class="field-label" for="changeStudentSelect">학생 선택</label>
@@ -340,17 +359,19 @@
         <div class="changelog-block from">
           <h4>📌 원래 등록된 근무 날짜 · 시간</h4>
           <input type="date" id="changeFromDate">
-          <div style="font-size:10.5px;color:var(--ink-faint);margin:-6px 0 8px;">평일만 선택할 수 있어요 (주말·공휴일 제외)</div>
+          <div style="font-size:10.5px;color:var(--ink-faint);margin:-6px 0 8px;">평일만 선택할 수 있어요 (주말·공휴일 제외, 이미 근무 체크가 완료된 날짜도 선택 불가)</div>
           <div class="period-check-list" id="changeFromPeriods"></div>
         </div>
         <div class="changelog-block to">
           <h4>🔁 변경할 근무 날짜 · 시간</h4>
           <input type="date" id="changeToDate">
-          <div style="font-size:10.5px;color:var(--ink-faint);margin:-6px 0 8px;">평일만 선택할 수 있어요 (주말·공휴일 제외)</div>
+          <div style="font-size:10.5px;color:var(--ink-faint);margin:-6px 0 6px;">평일만 선택할 수 있어요 (주말·공휴일 제외, 이미 근무 체크가 완료된 날짜도 선택 불가)</div>
+          <div id="toPeriodsHint" style="font-size:10.5px;color:var(--shift);font-weight:700;margin:-2px 0 8px;"></div>
           <div class="period-check-list" id="changeToPeriods"></div>
         </div>
       </div>
       <div class="changelog-save-row">
+        <button class="btn-cancel-edit" id="cancelEditChangeBtn" style="display:none;">수정 취소</button>
         <button id="saveChangeBtn">변동사항 저장</button>
       </div>
     </div>
@@ -445,6 +466,7 @@ function periodListExcludingLunch(){
 
 // 요일: JS Date.getDay() 기준 0=일,1=월,2=화,3=수,4=목,5=금,6=토
 const DOW_ORDER = [1,2,3,4,5,6,0]; // 월~일 순서로 표시
+const WEEKDAY_ORDER = [1,2,3,4,5]; // 근로 시간표 설정용: 월~금만 표시
 const DOW_LABEL = {0:'일',1:'월',2:'화',3:'수',4:'목',5:'금',6:'토'};
 
 let state = null;
@@ -454,6 +476,9 @@ let docRef = null;
 let scheduleDraft = {};
 let scheduleActiveMonth = '';
 let scheduleActiveStudent = 0;
+let scheduleViewMode = 'student'; // 'student' 또는 'summary'
+let editingChangeId = null; // 현재 수정 중인 변동사항 id (없으면 null)
+const STUDENT_COLORS = ['var(--stamp)', 'var(--shift)', 'var(--gold)', 'var(--ink-soft)'];
 
 function todayStr(){
   const d = new Date();
@@ -668,6 +693,14 @@ function dayTotal(date){
   return rec.reduce((sum,row)=>sum + countWorked(row), 0);
 }
 
+/* 특정 학생이 특정 날짜에 이미 근무 체크(출근 도장)를 1개라도 찍었는지 여부.
+   이미 근무가 끝난 날짜는 시간표 변동사항의 "원래 날짜"/"변경할 날짜"로 선택할 수 없도록 하는 데 사용. */
+function hasAttendanceCheck(sIdx, dateStr){
+  const row = state.records[dateStr] && state.records[dateStr][sIdx];
+  if(!row) return false;
+  return countWorked(row) > 0;
+}
+
 /* ---------- Rendering ---------- */
 
 function renderAll(){
@@ -880,6 +913,7 @@ function openScheduleModal(){
   scheduleDraft = JSON.parse(JSON.stringify(state.schedule || {}));
   scheduleActiveMonth = currentDate.slice(0,7); // 지금 보고 있는 날짜의 달을 기본으로 열기
   scheduleActiveStudent = 0;
+  scheduleViewMode = 'student';
   document.getElementById('scheduleMonthPicker').value = scheduleActiveMonth;
   renderScheduleTabs();
   renderScheduleGrid();
@@ -888,31 +922,52 @@ function openScheduleModal(){
 
 function renderScheduleTabs(){
   const wrap = document.getElementById('scheduleTabs');
-  wrap.innerHTML = state.students.map((name,i)=>
-    `<button class="sched-tab ${i===scheduleActiveStudent?'active':''}" data-i="${i}">${escapeHtml(name)}</button>`
+  let html = state.students.map((name,i)=>
+    `<button class="sched-tab" data-i="${i}">${escapeHtml(name)}</button>`
   ).join('');
-  wrap.querySelectorAll('.sched-tab').forEach(btn=>{
+  html += `<button class="sched-tab summary-tab" id="summaryTabBtn">📊 종합시간표 보기</button>`;
+  html += `<button class="sched-tab download-tab" id="downloadScheduleBtn" type="button">⬇ 시간표 다운받기</button>`;
+  wrap.innerHTML = html;
+
+  wrap.querySelectorAll('.sched-tab[data-i]').forEach(btn=>{
+    const i = +btn.dataset.i;
+    if(scheduleViewMode==='student' && i===scheduleActiveStudent) btn.classList.add('active');
     btn.addEventListener('click', ()=>{
-      scheduleActiveStudent = +btn.dataset.i;
+      scheduleViewMode = 'student';
+      scheduleActiveStudent = i;
       renderScheduleTabs();
       renderScheduleGrid();
     });
   });
+
+  const summaryBtn = document.getElementById('summaryTabBtn');
+  if(scheduleViewMode==='summary') summaryBtn.classList.add('active');
+  summaryBtn.addEventListener('click', ()=>{
+    scheduleViewMode = 'summary';
+    renderScheduleTabs();
+    renderScheduleGrid();
+  });
+
+  document.getElementById('downloadScheduleBtn').addEventListener('click', downloadScheduleSummaryExcel);
 }
 
 function renderScheduleGrid(){
+  if(scheduleViewMode === 'summary'){
+    renderScheduleSummaryGrid();
+    return;
+  }
   ensureScheduleDraftStudent(scheduleActiveMonth, scheduleActiveStudent);
   const table = document.getElementById('scheduleGridTable');
   let html = '<thead><tr><th></th>';
-  DOW_ORDER.forEach(dow=>{ html += `<th>${DOW_LABEL[dow]}</th>`; });
+  WEEKDAY_ORDER.forEach(dow=>{ html += `<th>${DOW_LABEL[dow]}</th>`; });
   html += '</tr></thead><tbody>';
   PERIODS.forEach(pIdx=>{
     const {no,time} = periodLabel(pIdx);
     html += `<tr><th class="sched-period-label">${no} <span style="color:var(--ink-faint);font-weight:500;">(${time})</span></th>`;
     if(pIdx === LUNCH_INDEX){
-      DOW_ORDER.forEach(()=>{ html += `<td class="sched-cell sched-lunch">점심</td>`; });
+      WEEKDAY_ORDER.forEach(()=>{ html += `<td class="sched-cell sched-lunch">점심</td>`; });
     } else {
-      DOW_ORDER.forEach(dow=>{
+      WEEKDAY_ORDER.forEach(dow=>{
         const on = scheduleDraft[scheduleActiveMonth][scheduleActiveStudent][dow][pIdx] === '1';
         html += `<td class="sched-cell ${on?'on':''}" data-dow="${dow}" data-p="${pIdx}">${on?'●':''}</td>`;
       });
@@ -932,6 +987,38 @@ function renderScheduleGrid(){
       renderScheduleGrid();
     });
   });
+}
+
+/* 종합시간표 보기: 4명의 근무 교시를 한 표에 모아서, 겹치는 시간에는 이름을 세로로 나열 */
+function renderScheduleSummaryGrid(){
+  state.students.forEach((name, sIdx)=> ensureScheduleDraftStudent(scheduleActiveMonth, sIdx));
+
+  const table = document.getElementById('scheduleGridTable');
+  let html = '<thead><tr><th></th>';
+  WEEKDAY_ORDER.forEach(dow=>{ html += `<th>${DOW_LABEL[dow]}</th>`; });
+  html += '</tr></thead><tbody>';
+  PERIODS.forEach(pIdx=>{
+    const {no,time} = periodLabel(pIdx);
+    html += `<tr><th class="sched-period-label">${no} <span style="color:var(--ink-faint);font-weight:500;">(${time})</span></th>`;
+    if(pIdx === LUNCH_INDEX){
+      WEEKDAY_ORDER.forEach(()=>{ html += `<td class="sched-cell sched-lunch">점심</td>`; });
+    } else {
+      WEEKDAY_ORDER.forEach(dow=>{
+        const names = [];
+        state.students.forEach((name, sIdx)=>{
+          const on = scheduleDraft[scheduleActiveMonth][sIdx][dow][pIdx] === '1';
+          if(on) names.push({ name, sIdx });
+        });
+        const content = names.map(n=>
+          `<div class="summary-name-chip" style="background:${STUDENT_COLORS[n.sIdx % STUDENT_COLORS.length]}">${escapeHtml(n.name)}</div>`
+        ).join('');
+        html += `<td class="sched-cell sched-summary-cell">${content}</td>`;
+      });
+    }
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
 }
 
 document.getElementById('scheduleMonthPicker').addEventListener('change', (e)=>{
@@ -963,23 +1050,70 @@ function populateChangeStudentSelect(){
   if(prev!=='' && +prev < state.students.length) sel.value = prev;
 }
 
+function getRequiredFromCount(){
+  return document.querySelectorAll('.from-p-check:checked').length;
+}
+
+/* '변경할 근무 시간'이 '원래 등록된 근무 시간'과 같은 개수만 선택되도록 실시간으로 맞춰줌 */
+function syncToPeriodsWithFromCount(){
+  const required = getRequiredFromCount();
+  const toCheckboxes = Array.from(document.querySelectorAll('.to-p-check'));
+  let checkedCount = toCheckboxes.filter(cb=>cb.checked).length;
+
+  // 필요한 개수보다 많이 체크되어 있으면 뒤에서부터 자동으로 해제
+  if(checkedCount > required){
+    for(let i=toCheckboxes.length-1; i>=0 && checkedCount>required; i--){
+      if(toCheckboxes[i].checked){
+        toCheckboxes[i].checked = false;
+        checkedCount--;
+      }
+    }
+  }
+
+  toCheckboxes.forEach(cb=>{
+    if(cb.dataset.duplicate === '1') return; // 근무 시간과 중복인 항목은 항상 비활성 유지
+    const label = cb.closest('label');
+    if(!cb.checked){
+      const shouldDisable = (required===0) || (checkedCount>=required);
+      cb.disabled = shouldDisable;
+      if(label) label.classList.toggle('limit-disabled', shouldDisable);
+    } else {
+      cb.disabled = false;
+      if(label) label.classList.remove('limit-disabled');
+    }
+  });
+
+  const hint = document.getElementById('toPeriodsHint');
+  if(hint){
+    hint.textContent = required===0
+      ? '원래 근무 시간을 먼저 선택해주세요'
+      : `원래 선택한 시간과 같은 개수(${required}개)만 고를 수 있어요 · 현재 ${checkedCount}/${required} 선택됨`;
+  }
+}
+
 function renderChangeFromPeriods(){
   const sIdx = +document.getElementById('changeStudentSelect').value;
   const dateStr = document.getElementById('changeFromDate').value;
   const wrap = document.getElementById('changeFromPeriods');
   if(!dateStr){
     wrap.innerHTML = `<span class="period-check empty">날짜를 먼저 선택하세요</span>`;
+    syncToPeriodsWithFromCount();
     return;
   }
   const scheduled = getScheduledPeriodsForDate(sIdx, dateStr);
   if(scheduled.length===0){
     wrap.innerHTML = `<span class="period-check empty">이 날은 등록된 근무 시간표가 없습니다</span>`;
+    syncToPeriodsWithFromCount();
     return;
   }
   wrap.innerHTML = scheduled.map(p=>{
     const {no,time} = periodLabel(p);
     return `<label class="period-check"><input type="checkbox" class="from-p-check" value="${p}" checked>${no} (${time})</label>`;
   }).join('');
+  wrap.querySelectorAll('.from-p-check').forEach(cb=>{
+    cb.addEventListener('change', syncToPeriodsWithFromCount);
+  });
+  syncToPeriodsWithFromCount();
 }
 
 function renderChangeToPeriods(){
@@ -988,6 +1122,7 @@ function renderChangeToPeriods(){
   const dateStr = document.getElementById('changeToDate').value;
   if(!dateStr){
     wrap.innerHTML = `<span class="period-check empty">날짜를 먼저 선택하세요</span>`;
+    syncToPeriodsWithFromCount();
     return;
   }
   const alreadyScheduled = getScheduledPeriodsForDate(sIdx, dateStr);
@@ -996,11 +1131,94 @@ function renderChangeToPeriods(){
     const disabled = alreadyScheduled.includes(p);
     if(disabled){
       return `<label class="period-check duplicate" title="이미 그 달 정규 근무 시간표에 있는 시간이라 선택할 수 없어요">
-        <input type="checkbox" class="to-p-check" value="${p}" disabled><span class="dup-strike">${no} (${time})</span> · <b>근무 시간과 중복</b>
+        <input type="checkbox" class="to-p-check" value="${p}" data-duplicate="1" disabled><span class="dup-strike">${no} (${time})</span> · <b>근무 시간과 중복</b>
       </label>`;
     }
     return `<label class="period-check"><input type="checkbox" class="to-p-check" value="${p}">${no} (${time})</label>`;
   }).join('');
+  wrap.querySelectorAll('.to-p-check').forEach(cb=>{
+    cb.addEventListener('change', syncToPeriodsWithFromCount);
+  });
+  syncToPeriodsWithFromCount();
+}
+
+/* 수정 모드일 때, 렌더링 직후 기존에 저장돼 있던 교시 선택 상태를 다시 체크해줌.
+   (날짜가 그 변동사항의 원래 날짜와 같을 때만 적용 — 사용자가 날짜를 바꾼 경우엔 그대로 둠) */
+function applyEditingChangeSelections(){
+  if(!editingChangeId) return;
+  const c = (state.changes||[]).find(x=>x.id===editingChangeId);
+  if(!c) return;
+  const fromDateVal = document.getElementById('changeFromDate').value;
+  const toDateVal = document.getElementById('changeToDate').value;
+  if(fromDateVal === c.fromDate){
+    document.querySelectorAll('.from-p-check').forEach(cb=>{
+      cb.checked = c.fromPeriods.includes(+cb.value);
+    });
+  }
+  if(toDateVal === c.toDate){
+    document.querySelectorAll('.to-p-check').forEach(cb=>{
+      if(cb.dataset.duplicate==='1') return;
+      cb.checked = c.toPeriods.includes(+cb.value);
+    });
+  }
+  syncToPeriodsWithFromCount();
+}
+
+/* 변동사항 목록의 "수정" 버튼을 눌렀을 때: 폼에 기존 값을 채워넣고 수정 모드로 전환 */
+function startEditChange(id){
+  const c = (state.changes||[]).find(x=>x.id===id);
+  if(!c) return;
+  editingChangeId = id;
+  document.getElementById('changeStudentSelect').value = c.student;
+  document.getElementById('changeFromDate').value = c.fromDate;
+  document.getElementById('changeToDate').value = c.toDate;
+  renderChangeFromPeriods();
+  renderChangeToPeriods();
+  applyEditingChangeSelections();
+  updateSaveButtonForEditing();
+  renderChangeLogListOnly();
+  document.getElementById('changeLogCard').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+/* 수정 모드를 취소하고 폼을 새 항목 입력 상태로 되돌림 */
+function cancelEditChange(){
+  editingChangeId = null;
+  document.getElementById('changeFromDate').value = nextWorkday(todayStr());
+  document.getElementById('changeToDate').value = nextWorkday(tomorrowStr());
+  renderChangeFromPeriods();
+  renderChangeToPeriods();
+  updateSaveButtonForEditing();
+  renderChangeLogListOnly();
+}
+
+/* 저장 버튼 문구와 "수정 취소" 버튼 표시 여부를 현재 수정 상태에 맞춰 갱신 */
+function updateSaveButtonForEditing(){
+  const saveBtn = document.getElementById('saveChangeBtn');
+  const cancelBtn = document.getElementById('cancelEditChangeBtn');
+  if(editingChangeId){
+    saveBtn.textContent = '수정 내용 저장';
+    cancelBtn.style.display = '';
+  } else {
+    saveBtn.textContent = '변동사항 저장';
+    cancelBtn.style.display = 'none';
+  }
+}
+
+function validateChangeDateInput(inputEl, dateStr, editingOwnDate){
+  if(!dateStr) return true;
+  if(isNonWorkday(dateStr)){
+    alert(`${nonWorkdayReason(dateStr)}에는 근로학생이 출근하지 않아 선택할 수 없어요. 평일(공휴일 제외)을 선택해주세요.`);
+    inputEl.value = '';
+    return false;
+  }
+  const sIdx = +document.getElementById('changeStudentSelect').value;
+  // 지금 수정 중인 변동사항 자신의 원래 날짜라면(이미 기록된 값이므로) 예외로 허용
+  if(!editingOwnDate && hasAttendanceCheck(sIdx, dateStr)){
+    alert('이 날짜는 이미 근무 체크(출근 도장)가 완료되어 선택할 수 없어요. 아직 체크되지 않은 다른 날짜를 선택해주세요.');
+    inputEl.value = '';
+    return false;
+  }
+  return true;
 }
 
 document.getElementById('changeStudentSelect').addEventListener('change', ()=>{
@@ -1008,20 +1226,21 @@ document.getElementById('changeStudentSelect').addEventListener('change', ()=>{
   renderChangeToPeriods();
 });
 document.getElementById('changeFromDate').addEventListener('change', (e)=>{
-  if(e.target.value && isNonWorkday(e.target.value)){
-    alert(`${nonWorkdayReason(e.target.value)}에는 근로학생이 출근하지 않아 선택할 수 없어요. 평일(공휴일 제외)을 선택해주세요.`);
-    e.target.value = '';
-  }
+  const c = editingChangeId ? (state.changes||[]).find(x=>x.id===editingChangeId) : null;
+  const editingOwnDate = !!(c && c.fromDate === e.target.value);
+  validateChangeDateInput(e.target, e.target.value, editingOwnDate);
   renderChangeFromPeriods();
+  applyEditingChangeSelections();
 });
 document.getElementById('changeToDate').addEventListener('change', (e)=>{
-  if(e.target.value && isNonWorkday(e.target.value)){
-    alert(`${nonWorkdayReason(e.target.value)}에는 근로학생이 출근하지 않아 선택할 수 없어요. 평일(공휴일 제외)을 선택해주세요.`);
-    e.target.value = '';
-  }
+  const c = editingChangeId ? (state.changes||[]).find(x=>x.id===editingChangeId) : null;
+  const editingOwnDate = !!(c && c.toDate === e.target.value);
+  validateChangeDateInput(e.target, e.target.value, editingOwnDate);
   renderChangeToPeriods();
+  applyEditingChangeSelections();
 });
 document.getElementById('saveChangeBtn').addEventListener('click', saveChangeRecord);
+document.getElementById('cancelEditChangeBtn').addEventListener('click', cancelEditChange);
 
 async function saveChangeRecord(){
   const sIdx = +document.getElementById('changeStudentSelect').value;
@@ -1033,14 +1252,29 @@ async function saveChangeRecord(){
   if(!fromDate || !toDate){ alert('원래 날짜와 변경할 날짜를 모두 선택해주세요.'); return; }
   if(fromPeriods.length===0){ alert('원래 근무 시간(교시)을 1개 이상 선택해주세요.'); return; }
   if(toPeriods.length===0){ alert('변경할 근무 시간(교시)을 1개 이상 선택해주세요.'); return; }
+  if(fromPeriods.length !== toPeriods.length){
+    alert(`원래 선택한 시간 개수(${fromPeriods.length}개)와 변경할 시간 개수(${toPeriods.length}개)가 같아야 해요.`);
+    return;
+  }
 
-  state.changes.push({
-    id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
-    student: sIdx,
-    fromDate, fromPeriods,
-    toDate, toPeriods,
-    createdAt: todayStr()
-  });
+  if(editingChangeId){
+    const idx = state.changes.findIndex(c=>c.id===editingChangeId);
+    if(idx > -1){
+      state.changes[idx] = {
+        ...state.changes[idx],
+        student: sIdx, fromDate, fromPeriods, toDate, toPeriods
+      };
+    }
+    editingChangeId = null;
+  } else {
+    state.changes.push({
+      id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+      student: sIdx,
+      fromDate, fromPeriods,
+      toDate, toPeriods,
+      createdAt: todayStr()
+    });
+  }
 
   document.getElementById('changeFromDate').value = nextWorkday(todayStr());
   document.getElementById('changeToDate').value = nextWorkday(tomorrowStr());
@@ -1059,29 +1293,55 @@ function renderChangeLog(){
 
   renderChangeFromPeriods();
   renderChangeToPeriods();
+  applyEditingChangeSelections();
+  updateSaveButtonForEditing();
+
+  renderChangeLogListOnly();
+}
+
+/* 변동사항 "목록" 부분만 다시 그림 (폼 입력값은 건드리지 않음)
+   지금 보고 있는 달(currentDate 기준)과 관련된 변동사항만 보여줍니다.
+   예: 7월을 보다가 8월로 넘어가면, 8월과 상관없는(원래 날짜·변경 날짜 모두 7월인) 변동사항은
+   목록에서 사라지고, 8월 관련 변동사항만 남습니다. 데이터 자체는 지워지지 않고 계속 저장되어
+   있으니, 나중에 다시 7월로 돌아오면 그 변동사항이 다시 보여요. */
+function renderChangeLogListOnly(){
+  const yearMonth = currentDate.slice(0,7);
+  const [y, m] = yearMonth.split('-');
+  document.getElementById('changeLogTitle').textContent = `${y}년 ${m}월 시간표 변동사항`;
 
   const list = document.getElementById('changeLogList');
-  const changes = [...(state.changes||[])].sort((a,b)=> b.toDate.localeCompare(a.toDate));
+  const allChanges = state.changes || [];
+  const changes = allChanges
+    .filter(c => c.fromDate.startsWith(yearMonth) || c.toDate.startsWith(yearMonth))
+    .sort((a,b)=> b.toDate.localeCompare(a.toDate));
   if(changes.length===0){
-    list.innerHTML = `<div class="empty-note">아직 등록된 변동사항이 없습니다.</div>`;
+    list.innerHTML = `<div class="empty-note">${y}년 ${m}월과 관련된 변동사항이 없습니다.</div>`;
     return;
   }
   list.innerHTML = changes.map(c=>{
     const name = state.students[c.student] || `근로학생${c.student+1}`;
     const fromTxt = c.fromPeriods.map(p=>periodLabel(p).no).join(', ');
     const toTxt = c.toPeriods.map(p=>periodLabel(p).no).join(', ');
-    return `<div class="changelog-list-item">
+    const isEditing = c.id === editingChangeId;
+    return `<div class="changelog-list-item${isEditing?' editing':''}">
       <span class="changelog-name">${escapeHtml(name)}</span>
       <span class="changelog-tag from">${c.fromDate} · ${fromTxt}</span>
       <span class="changelog-arrow">→</span>
       <span class="changelog-tag to">${c.toDate} · ${toTxt}</span>
-      <button class="changelog-del" data-id="${c.id}">삭제</button>
+      <span class="changelog-actions">
+        <button class="changelog-edit" data-id="${c.id}">${isEditing?'수정 중…':'수정'}</button>
+        <button class="changelog-del" data-id="${c.id}">삭제</button>
+      </span>
     </div>`;
   }).join('');
 
+  list.querySelectorAll('.changelog-edit').forEach(btn=>{
+    btn.addEventListener('click', ()=> startEditChange(btn.dataset.id));
+  });
   list.querySelectorAll('.changelog-del').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const id = btn.dataset.id;
+      if(editingChangeId === id) cancelEditChange();
       state.changes = state.changes.filter(c=>c.id!==id);
       renderAll();
       await persist();
@@ -1189,6 +1449,52 @@ function downloadStudentExcel(){
 
   const fileName = `${studentName}_${yearMonth}_근태기록.xlsx`;
   XLSX.writeFile(wb, fileName);
+}
+
+/* 4명의 근무 교시를 한 표(교시 × 요일)로 모은 "종합 근무 시간표" 엑셀 시트 생성.
+   같은 시간에 여러 명이 겹치면 " / "로 이름을 나열합니다. 저장된(state.schedule) 시간표 기준입니다. */
+function buildScheduleSummarySheet(yearMonth){
+  const monthNum = parseInt(yearMonth.split('-')[1], 10);
+  const title = `${monthNum}월 종합 근무시간표`;
+  const totalCols = 2 + WEEKDAY_ORDER.length;
+
+  const rows = [];
+  rows.push([title]);
+  rows.push([]);
+  rows.push(['교시', '시간', ...WEEKDAY_ORDER.map(d=>DOW_LABEL[d]+'요일')]);
+  const merges = [ { s:{r:0,c:0}, e:{r:0,c:totalCols-1} } ];
+
+  PERIODS.forEach(pIdx=>{
+    const {no,time} = periodLabel(pIdx);
+    if(pIdx === LUNCH_INDEX){
+      rows.push([no, time, ...WEEKDAY_ORDER.map(()=>'점심시간')]);
+      return;
+    }
+    const cells = WEEKDAY_ORDER.map(dow=>{
+      const names = [];
+      state.students.forEach((name, sIdx)=>{
+        const sched = getStudentSchedule(sIdx, dow, yearMonth);
+        if(sched[pIdx] === '1') names.push(name);
+      });
+      return names.length ? names.join(' / ') : '';
+    });
+    rows.push([no, time, ...cells]);
+  });
+
+  return { rows, merges, totalCols };
+}
+
+function downloadScheduleSummaryExcel(){
+  const yearMonth = scheduleActiveMonth || currentDate.slice(0,7);
+  const { rows, merges, totalCols } = buildScheduleSummarySheet(yearMonth);
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:8},{wch:14}, ...WEEKDAY_ORDER.map(()=>({wch:22}))];
+  ws['!merges'] = merges;
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, yearMonth);
+
+  XLSX.writeFile(wb, `종합근무시간표_${yearMonth}.xlsx`);
 }
 
 document.getElementById('openExcel').addEventListener('click', ()=>{
