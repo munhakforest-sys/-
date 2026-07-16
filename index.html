@@ -108,7 +108,7 @@
   th.lunch-head{background:#EFE7DC;}
   td.cell{width:56px;height:56px;cursor:pointer;position:relative;transition:background .1s;}
   td.cell:hover{background:#FBF3E9;}
-  td.cell.scheduled{box-shadow: inset 0 0 0 2px rgba(166,121,31,0.5);}
+  td.cell.scheduled{box-shadow: inset 0 0 0 2px rgba(166,121,31,0.55);}
   td.cell.changed-in{box-shadow: inset 0 0 0 2px var(--shift);}
   td.cell.changed-away{opacity:0.55;}
   td.lunch-cell{
@@ -116,7 +116,19 @@
     background:repeating-linear-gradient(135deg, #F1ECE0, #F1ECE0 6px, #E8E1D2 6px, #E8E1D2 12px);
   }
   td.lunch-cell:hover{background:repeating-linear-gradient(135deg, #F1ECE0, #F1ECE0 6px, #E8E1D2 6px, #E8E1D2 12px);}
+  
+  /* 주말 및 공휴일(비근무일) 셀 스타일 - 사선 표시 */
+  td.cell.non-workday{
+    cursor: not-allowed;
+    background: repeating-linear-gradient(135deg, #FFF0F0, #FFF0F0 6px, #FFE0E0 6px, #FFE0E0 12px);
+  }
+  td.cell.non-workday:hover{
+    background: repeating-linear-gradient(135deg, #FFF0F0, #FFF0F0 6px, #FFE0E0 6px, #FFE0E0 12px);
+  }
+  
   .lunch-mark{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:700;color:var(--ink-faint);letter-spacing:.03em;}
+  .non-workday-mark{font-family:'Noto Sans KR',monospace;font-size:10.5px;font-weight:700;color:var(--stamp);letter-spacing:.03em;}
+  
   .stamp{
     width:34px;height:34px;margin:0 auto;border-radius:50%;border:2.5px solid var(--stamp);color:var(--stamp);
     display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;transform:rotate(-8deg);
@@ -161,6 +173,14 @@
   .mobile-chip.lunch{
     cursor:default;color:var(--ink-faint);border-style:dashed;
     background:repeating-linear-gradient(135deg, #F1ECE0, #F1ECE0 6px, #E8E1D2 6px, #E8E1D2 12px);
+  }
+  
+  /* 모바일 칩 비근무일 스타일 */
+  .mobile-chip.non-workday{
+    cursor: not-allowed;
+    color: var(--stamp);
+    border-style: dashed;
+    background: repeating-linear-gradient(135deg, #FFF0F0, #FFF0F0 6px, #FFE0E0 6px, #FFE0E0 12px);
   }
 
   .legend{display:flex;gap:18px;margin-top:14px;flex-wrap:wrap;}
@@ -717,6 +737,7 @@ function renderGrid(){
   const dow = new Date(currentDate + 'T00:00:00').getDay();
   const gridYearMonth = currentDate.slice(0,7);
   const changes = state.changes || [];
+  const isCurrentlyNonWorkday = isNonWorkday(currentDate);
 
   let html = '<thead><tr><th class="student-col">학생</th>';
   PERIODS.forEach(i=>{
@@ -734,6 +755,13 @@ function renderGrid(){
         html += `<td class="cell lunch-cell"><div class="lunch-mark">점심</div></td>`;
         return;
       }
+      
+      // 주말 및 공휴일(비근무일) 셀 처리
+      if(isCurrentlyNonWorkday){
+        html += `<td class="cell non-workday" title="주말/공휴일은 출근체크를 할 수 없습니다."><div class="non-workday-mark">✕</div></td>`;
+        return;
+      }
+
       const on = rec[sIdx][pIdx] === '1';
       const scheduled = sched[pIdx] === '1';
       const diff = on && !scheduled; // 시간표와 다른 시간에 체크됨
@@ -751,7 +779,7 @@ function renderGrid(){
   html += '</tbody>';
   table.innerHTML = html;
 
-  table.querySelectorAll('td.cell:not(.lunch-cell)').forEach(td=>{
+  table.querySelectorAll('td.cell:not(.lunch-cell):not(.non-workday)').forEach(td=>{
     td.addEventListener('click', ()=> toggleCell(+td.dataset.s, +td.dataset.p));
   });
 
@@ -797,6 +825,7 @@ async function toggleCell(sIdx, pIdx){
 function renderGridMobile(rec, dow, gridYearMonth){
   const wrap = document.getElementById('gridMobile');
   const changes = state.changes || [];
+  const isCurrentlyNonWorkday = isNonWorkday(currentDate);
   let html = '';
   state.students.forEach((name, sIdx)=>{
     const sched = getEffectiveDaySchedule(sIdx, currentDate);
@@ -809,6 +838,13 @@ function renderGridMobile(rec, dow, gridYearMonth){
         html += `<div class="mobile-chip lunch">점심</div>`;
         return;
       }
+      
+      // 모바일 비근무일 처리
+      if(isCurrentlyNonWorkday){
+        html += `<div class="mobile-chip non-workday">✕</div>`;
+        return;
+      }
+
       const on = rec[sIdx][pIdx] === '1';
       const scheduled = sched[pIdx] === '1';
       const diff = on && !scheduled;
@@ -820,7 +856,7 @@ function renderGridMobile(rec, dow, gridYearMonth){
     html += `</div></div>`;
   });
   wrap.innerHTML = html;
-  wrap.querySelectorAll('.mobile-chip:not(.lunch)').forEach(chip=>{
+  wrap.querySelectorAll('.mobile-chip:not(.lunch):not(.non-workday)').forEach(chip=>{
     chip.addEventListener('click', ()=> toggleCell(+chip.dataset.s, +chip.dataset.p));
   });
 }
@@ -1257,6 +1293,9 @@ async function saveChangeRecord(){
     return;
   }
 
+  // 원래 근무 등록 시간 중 9교시(인덱스 8)가 포함되어 있는지 체크
+  const includes9thPeriod = fromPeriods.includes(8);
+
   if(editingChangeId){
     const idx = state.changes.findIndex(c=>c.id===editingChangeId);
     if(idx > -1){
@@ -1274,6 +1313,11 @@ async function saveChangeRecord(){
       toDate, toPeriods,
       createdAt: todayStr()
     });
+  }
+
+  // 9교시가 포함되어 있는 경우 알림 팝업 노출
+  if (includes9thPeriod) {
+    alert("원래 근무 시간에 마지막 교시(9교시)가 포함되어 있습니다.\n문단속과 관련하여 단체 카톡방에 안내 메시지 전송을 부탁드립니다!");
   }
 
   document.getElementById('changeFromDate').value = nextWorkday(todayStr());
@@ -1299,11 +1343,7 @@ function renderChangeLog(){
   renderChangeLogListOnly();
 }
 
-/* 변동사항 "목록" 부분만 다시 그림 (폼 입력값은 건드리지 않음)
-   지금 보고 있는 달(currentDate 기준)과 관련된 변동사항만 보여줍니다.
-   예: 7월을 보다가 8월로 넘어가면, 8월과 상관없는(원래 날짜·변경 날짜 모두 7월인) 변동사항은
-   목록에서 사라지고, 8월 관련 변동사항만 남습니다. 데이터 자체는 지워지지 않고 계속 저장되어
-   있으니, 나중에 다시 7월로 돌아오면 그 변동사항이 다시 보여요. */
+/* 변동사항 "목록" 부분만 다시 그림 (폼 입력값은 건드리지 않음) */
 function renderChangeLogListOnly(){
   const yearMonth = currentDate.slice(0,7);
   const [y, m] = yearMonth.split('-');
@@ -1352,9 +1392,6 @@ function renderChangeLogListOnly(){
 /* ---------- Excel 다운로드 (학생별 · 월별) ---------- */
 const excelOverlay = document.getElementById('excelOverlay');
 
-/* rowStr(9자리 0/1 문자열)에서 연속으로 체크된 교시 구간을 찾아
-   [{startPeriod, endPeriod}] 형태(둘 다 0-indexed)로 반환.
-   4교시(점심)는 항상 '0'이므로 자연스럽게 오전/오후 구간이 나뉩니다. */
 function findWorkedRanges(rowStr){
   const ranges = [];
   let i = 0;
@@ -1370,12 +1407,6 @@ function findWorkedRanges(rowStr){
   return ranges;
 }
 
-/* 학생 1명, 특정 달("YYYY-MM")의 근태 데이터를 시트 형태로 생성.
-   맨 위에는 "학생이름 7월 근무시간 요약표" 같은 제목이 붙고,
-   체크(출근)한 날짜만 포함됩니다. 하루에 근무 구간이 여러 개면(예: 오전 9~11시, 오후 13~15시,
-   심지어 오후에 또 나뉘어 15~16시까지) 점심시간은 건너뛰고 같은 날짜 아래에 구간마다
-   따로 줄을 나눠서(하위 행) 보여주고, "월"과 "일" 칸은 그 날짜의 첫 줄에만 표시되도록
-   세로로 병합합니다. */
 function buildStudentMonthSheet(sIdx, yearMonth){
   const dates = Object.keys(state.records).filter(d => d.startsWith(yearMonth)).sort();
   const monthNum = parseInt(yearMonth.split('-')[1], 10);
@@ -1451,8 +1482,6 @@ function downloadStudentExcel(){
   XLSX.writeFile(wb, fileName);
 }
 
-/* 4명의 근무 교시를 한 표(교시 × 요일)로 모은 "종합 근무 시간표" 엑셀 시트 생성.
-   같은 시간에 여러 명이 겹치면 " / "로 이름을 나열합니다. 저장된(state.schedule) 시간표 기준입니다. */
 function buildScheduleSummarySheet(yearMonth){
   const monthNum = parseInt(yearMonth.split('-')[1], 10);
   const title = `${monthNum}월 종합 근무시간표`;
