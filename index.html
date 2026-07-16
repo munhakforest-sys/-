@@ -109,6 +109,8 @@
   td.cell{width:56px;height:56px;cursor:pointer;position:relative;transition:background .1s;}
   td.cell:hover{background:#FBF3E9;}
   td.cell.scheduled{box-shadow: inset 0 0 0 2px rgba(166,121,31,0.5);}
+  td.cell.changed-in{box-shadow: inset 0 0 0 2px var(--shift);}
+  td.cell.changed-away{opacity:0.55;}
   td.lunch-cell{
     cursor:default;
     background:repeating-linear-gradient(135deg, #F1ECE0, #F1ECE0 6px, #E8E1D2 6px, #E8E1D2 12px);
@@ -124,6 +126,16 @@
   .stamp.diff{border-color:var(--shift);color:var(--shift);box-shadow:0 0 0 1px rgba(46,110,142,0.12);}
   @keyframes stampIn{0%{transform:rotate(-8deg) scale(1.5);opacity:0;}100%{transform:rotate(-8deg) scale(1);opacity:1;}}
   .daytotal{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);font-weight:600;}
+
+  .changed-badge{
+    position:absolute;top:-6px;right:-2px;font-size:8px;background:var(--shift);color:var(--white);
+    border-radius:8px;padding:1px 4px;font-family:'IBM Plex Mono',monospace;font-weight:700;letter-spacing:.02em;
+    line-height:1.4;
+  }
+  .moved-badge{
+    position:absolute;bottom:-6px;left:-2px;font-size:8px;background:var(--ink-faint);color:var(--white);
+    border-radius:8px;padding:1px 4px;font-family:'IBM Plex Mono',monospace;font-weight:700;line-height:1.4;
+  }
 
   /* 화면 크기와 상관없이 항상 표(그리드) 레이아웃으로만 표시합니다. */
   .mobile-grid{display:none;}
@@ -144,6 +156,8 @@
   .mobile-chip.scheduled{border-color:rgba(166,121,31,0.6);box-shadow:inset 0 0 0 1.5px rgba(166,121,31,0.4);}
   .mobile-chip.on{background:var(--stamp);border-color:var(--stamp);color:var(--white);}
   .mobile-chip.on.diff{background:var(--shift);border-color:var(--shift);}
+  .mobile-chip.changed-in{box-shadow:inset 0 0 0 1.5px var(--shift);border-color:var(--shift);}
+  .mobile-chip.changed-away{opacity:0.55;text-decoration:line-through;}
   .mobile-chip.lunch{
     cursor:default;color:var(--ink-faint);border-style:dashed;
     background:repeating-linear-gradient(135deg, #F1ECE0, #F1ECE0 6px, #E8E1D2 6px, #E8E1D2 12px);
@@ -155,6 +169,13 @@
   .swatch-scheduled{border-radius:3px;box-shadow:inset 0 0 0 2px rgba(166,121,31,0.55);background:var(--white);border:1px solid var(--paper-line);}
   .swatch-match{border-radius:50%;border:2.5px solid var(--stamp);background:var(--white);}
   .swatch-diff{border-radius:50%;border:2.5px solid var(--shift);background:var(--white);}
+  .swatch-changed{border-radius:3px;box-shadow:inset 0 0 0 2px var(--shift);background:var(--white);border:1px solid var(--paper-line);}
+
+  .today-changes{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px;}
+  .today-change-chip{
+    display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:700;
+    color:var(--shift);background:rgba(46,110,142,0.1);border:1px solid rgba(46,110,142,0.35);padding:5px 10px;border-radius:20px;
+  }
 
   .summary-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(210px,1fr));gap:14px;margin-bottom:24px;}
   .stu-card{background:var(--white);border:1px solid var(--paper-line);box-shadow:var(--card-shadow);border-radius:5px;padding:16px 16px 14px;}
@@ -167,11 +188,44 @@
   .stu-hours b{color:var(--ink);font-size:15px;}
   .complete-tag{display:inline-block;margin-top:6px;font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.05em;}
 
-  .card.records table{width:100%;border-collapse:collapse;min-width:auto;}
-  .card.records th,.card.records td{border:none;border-bottom:1px solid var(--paper-line);padding:8px 6px;text-align:left;font-size:13px;}
-  .card.records th{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-faint);font-weight:600;letter-spacing:.04em;}
-  .rec-date-btn{background:none;border:none;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--ink);text-decoration:underline;text-underline-offset:2px;padding:0;}
-  .del-btn{background:none;border:none;color:var(--stamp);cursor:pointer;font-size:12px;font-weight:700;}
+  .field-label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:6px;font-weight:700;}
+  #changeStudentSelect{
+    width:100%;max-width:320px;padding:8px 10px;margin-bottom:16px;border:1px solid var(--paper-line);border-radius:3px;
+    font-family:'Noto Sans KR',sans-serif;font-size:13px;background:var(--white);color:var(--ink);
+  }
+  .changelog-form{display:flex;flex-direction:column;gap:14px;margin-bottom:20px;padding-bottom:20px;border-bottom:1px dashed var(--paper-line);}
+  .changelog-form .row{display:flex;flex-wrap:wrap;gap:16px;}
+  .changelog-block{flex:1 1 240px;background:var(--paper);border:1px solid var(--paper-line);border-radius:5px;padding:12px 14px;}
+  .changelog-block h4{margin:0 0 8px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;color:var(--ink-soft);font-weight:700;}
+  .changelog-block.from h4{color:var(--stamp);}
+  .changelog-block.to h4{color:var(--shift);}
+  .changelog-block input[type=date]{
+    width:100%;padding:7px 8px;margin-bottom:10px;border:1px solid var(--paper-line);border-radius:3px;
+    font-family:'Noto Sans KR',sans-serif;font-size:13px;background:var(--white);color:var(--ink);
+  }
+  .period-check-list{display:flex;flex-wrap:wrap;gap:6px;}
+  .period-check{
+    display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:14px;border:1px solid var(--paper-line);
+    background:var(--white);font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-soft);cursor:pointer;user-select:none;
+  }
+  .period-check input{margin:0;}
+  .period-check.empty{color:var(--ink-faint);border-style:dashed;cursor:default;}
+  .changelog-save-row{display:flex;justify-content:flex-end;}
+  .changelog-save-row button{
+    background:var(--shift);color:var(--white);border:none;padding:9px 20px;border-radius:3px;font-weight:700;
+    font-size:13px;cursor:pointer;
+  }
+  .changelog-save-row button:hover{background:#255A73;}
+  .changelog-list-item{
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--paper-line);font-size:13px;
+  }
+  .changelog-list-item:last-child{border-bottom:none;}
+  .changelog-tag{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;padding:3px 8px;border-radius:12px;}
+  .changelog-tag.from{background:rgba(179,40,45,0.1);color:var(--stamp);}
+  .changelog-tag.to{background:rgba(46,110,142,0.12);color:var(--shift);}
+  .changelog-arrow{color:var(--ink-faint);}
+  .changelog-name{font-weight:700;font-family:'Noto Serif KR',serif;}
+  .changelog-del{margin-left:auto;background:none;border:none;color:var(--stamp);cursor:pointer;font-size:12px;font-weight:700;}
   .empty-note{color:var(--ink-faint);font-size:13px;padding:6px 0;}
 
   .overlay{position:fixed;inset:0;background:rgba(31,42,68,0.45);display:none;align-items:center;justify-content:center;z-index:50;padding:16px;}
@@ -250,12 +304,14 @@
 
   <div class="card">
     <h2 id="gridTitle">교시별 출근 체크</h2>
+    <div class="today-changes" id="todayChanges"></div>
     <table class="grid" id="gridTable"></table>
     <div class="mobile-grid" id="gridMobile"></div>
     <div class="legend">
       <span class="legend-item"><span class="legend-swatch swatch-scheduled"></span>정규 근무 시간(시간표)</span>
       <span class="legend-item"><span class="legend-swatch swatch-match"></span>시간표대로 출근 체크</span>
       <span class="legend-item"><span class="legend-swatch swatch-diff"></span>시간표와 다른 시간에 출근 체크</span>
+      <span class="legend-item"><span class="legend-swatch swatch-changed"></span>변경된 근무시간(시간표 변동)</span>
     </div>
   </div>
 
@@ -264,12 +320,30 @@
     <div class="summary-grid" id="summaryGrid"></div>
   </div>
 
-  <div class="card records">
-    <h2>기록된 날짜</h2>
-    <table id="recordsTable">
-      <thead><tr><th>날짜</th><th>합계</th><th></th></tr></thead>
-      <tbody id="recordsBody"></tbody>
-    </table>
+  <div class="card" id="changeLogCard">
+    <h2>시간표 변동사항</h2>
+    <div class="changelog-form">
+      <div>
+        <label class="field-label" for="changeStudentSelect">학생 선택</label>
+        <select id="changeStudentSelect"></select>
+      </div>
+      <div class="row">
+        <div class="changelog-block from">
+          <h4>📌 원래 등록된 근무 날짜 · 시간</h4>
+          <input type="date" id="changeFromDate">
+          <div class="period-check-list" id="changeFromPeriods"></div>
+        </div>
+        <div class="changelog-block to">
+          <h4>🔁 변경할 근무 날짜 · 시간</h4>
+          <input type="date" id="changeToDate">
+          <div class="period-check-list" id="changeToPeriods"></div>
+        </div>
+      </div>
+      <div class="changelog-save-row">
+        <button id="saveChangeBtn">변동사항 저장</button>
+      </div>
+    </div>
+    <div id="changeLogList"></div>
   </div>
 </div>
 
@@ -354,6 +428,9 @@ function countWorked(rowStr){
   for(let i=0;i<rowStr.length;i++){ if(i!==LUNCH_INDEX && rowStr[i]==='1') c++; }
   return c;
 }
+function periodListExcludingLunch(){
+  return PERIODS.filter(p=>p!==LUNCH_INDEX);
+}
 
 // 요일: JS Date.getDay() 기준 0=일,1=월,2=화,3=수,4=목,5=금,6=토
 const DOW_ORDER = [1,2,3,4,5,6,0]; // 월~일 순서로 표시
@@ -375,12 +452,22 @@ function todayStr(){
   return `${y}-${m}-${dd}`;
 }
 
+function tomorrowStr(){
+  const d = new Date();
+  d.setDate(d.getDate()+1);
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+
 function defaultState(){
   return {
     students: ['정희훈','전형서','원수빈','김태윤'],
     target: 30,
     records: {}, // date -> ["000000000", ...] (교시별 0/1, 길이 9)
-    schedule: {} // yearMonth("YYYY-MM") -> studentIdx -> { dow(0~6): "000000000" } 그 달의 근무 시간표
+    schedule: {}, // yearMonth("YYYY-MM") -> studentIdx -> { dow(0~6): "000000000" } 그 달의 근무 시간표
+    changes: [] // [{id, student, fromDate, fromPeriods:[..], toDate, toPeriods:[..], createdAt}]
   };
 }
 
@@ -421,6 +508,7 @@ async function initFirebase(){
         if(!state.target) state.target = 30;
         if(!state.records) state.records = {};
         if(!state.schedule) state.schedule = {};
+        if(!state.changes) state.changes = [];
       } else {
         state = defaultState();
         await docRef.set(state);
@@ -471,6 +559,17 @@ function getStudentSchedule(sIdx, dow, yearMonth){
   return (m && m[sIdx] && m[sIdx][dow]) || '0'.repeat(9);
 }
 
+/* 특정 학생이 특정 날짜에 시간표상 근무하기로 되어있는 교시 목록 (점심 제외) */
+function getScheduledPeriodsForDate(sIdx, dateStr){
+  if(!dateStr) return [];
+  const dow = new Date(dateStr+'T00:00:00').getDay();
+  const yearMonth = dateStr.slice(0,7);
+  const sched = getStudentSchedule(sIdx, dow, yearMonth);
+  const list = [];
+  PERIODS.forEach(p=>{ if(p!==LUNCH_INDEX && sched[p]==='1') list.push(p); });
+  return list;
+}
+
 /* ---- 월별 누적 계산 ----
    yearMonth 인자("YYYY-MM")를 주면 그 달의 기록만 합산합니다.
    인자를 생략하면(과거 호환용) 전체 기간을 합산합니다. */
@@ -497,7 +596,7 @@ function renderAll(){
   document.getElementById('datePicker').value = currentDate;
   renderGrid();
   renderSummary();
-  renderRecordsList();
+  renderChangeLog();
 }
 
 function renderGrid(){
@@ -505,6 +604,7 @@ function renderGrid(){
   const rec = getDayRecord(currentDate);
   const dow = new Date(currentDate + 'T00:00:00').getDay();
   const gridYearMonth = currentDate.slice(0,7);
+  const changes = state.changes || [];
 
   let html = '<thead><tr><th class="student-col">학생</th>';
   PERIODS.forEach(i=>{
@@ -515,6 +615,7 @@ function renderGrid(){
   html += '<th style="min-width:64px;">합계</th></tr></thead><tbody>';
   state.students.forEach((name, sIdx)=>{
     const sched = getStudentSchedule(sIdx, dow, gridYearMonth);
+    const studentChanges = changes.filter(c=>c.student===sIdx);
     html += `<tr><th class="student-col">${escapeHtml(name)}</th>`;
     PERIODS.forEach(pIdx=>{
       if(pIdx === LUNCH_INDEX){
@@ -524,9 +625,13 @@ function renderGrid(){
       const on = rec[sIdx][pIdx] === '1';
       const scheduled = sched[pIdx] === '1';
       const diff = on && !scheduled; // 시간표와 다른 시간에 체크됨
-      const cellClass = 'cell' + (scheduled ? ' scheduled' : '');
+      const changedIn = studentChanges.some(c=>c.toDate===currentDate && c.toPeriods.includes(pIdx));
+      const changedAway = studentChanges.some(c=>c.fromDate===currentDate && c.fromPeriods.includes(pIdx));
+      const cellClass = 'cell' + (scheduled ? ' scheduled' : '') + (changedIn ? ' changed-in' : '') + (changedAway ? ' changed-away' : '');
       const stampClass = 'stamp' + (on?' on':'') + (diff?' diff':'');
-      html += `<td class="${cellClass}" data-s="${sIdx}" data-p="${pIdx}"><div class="${stampClass}">${on?'✓':''}</div></td>`;
+      const changedBadge = changedIn ? `<span class="changed-badge" title="변경된 근무시간">변경</span>` : '';
+      const movedBadge = changedAway ? `<span class="moved-badge" title="다른 날짜로 변경됨">이동</span>` : '';
+      html += `<td class="${cellClass}" data-s="${sIdx}" data-p="${pIdx}"><div class="${stampClass}">${on?'✓':''}</div>${changedBadge}${movedBadge}</td>`;
     });
     const total = countWorked(rec[sIdx]);
     html += `<td class="daytotal">${total}시간</td></tr>`;
@@ -541,7 +646,19 @@ function renderGrid(){
   document.getElementById('gridTitle').textContent = `교시별 출근 체크 — ${currentDate} (${DOW_LABEL[dow]}요일)`;
   document.getElementById('dayTotalLabel').textContent = `이 날 합계: ${dayTotal(currentDate)}시간`;
 
+  renderTodayChangesBanner();
   renderGridMobile(rec, dow, gridYearMonth);
+}
+
+function renderTodayChangesBanner(){
+  const wrap = document.getElementById('todayChanges');
+  const changesIn = (state.changes||[]).filter(c=>c.toDate===currentDate);
+  if(changesIn.length===0){ wrap.innerHTML=''; return; }
+  wrap.innerHTML = changesIn.map(c=>{
+    const name = state.students[c.student] || `근로학생${c.student+1}`;
+    const periodsTxt = c.toPeriods.map(p=>periodLabel(p).no).join(', ');
+    return `<span class="today-change-chip">🔁 변경된 근무시간 · ${escapeHtml(name)} (${periodsTxt})</span>`;
+  }).join('');
 }
 
 async function toggleCell(sIdx, pIdx){
@@ -555,9 +672,11 @@ async function toggleCell(sIdx, pIdx){
 
 function renderGridMobile(rec, dow, gridYearMonth){
   const wrap = document.getElementById('gridMobile');
+  const changes = state.changes || [];
   let html = '';
   state.students.forEach((name, sIdx)=>{
     const sched = getStudentSchedule(sIdx, dow, gridYearMonth);
+    const studentChanges = changes.filter(c=>c.student===sIdx);
     const total = countWorked(rec[sIdx]);
     html += `<div class="mobile-student"><div class="mobile-student-name"><span>${escapeHtml(name)}</span><span class="mobile-daytotal">${total}시간</span></div><div class="mobile-periods">`;
     PERIODS.forEach(pIdx=>{
@@ -569,7 +688,9 @@ function renderGridMobile(rec, dow, gridYearMonth){
       const on = rec[sIdx][pIdx] === '1';
       const scheduled = sched[pIdx] === '1';
       const diff = on && !scheduled;
-      const cls = 'mobile-chip' + (scheduled?' scheduled':'') + (on?' on':'') + (diff?' diff':'');
+      const changedIn = studentChanges.some(c=>c.toDate===currentDate && c.toPeriods.includes(pIdx));
+      const changedAway = studentChanges.some(c=>c.fromDate===currentDate && c.fromPeriods.includes(pIdx));
+      const cls = 'mobile-chip' + (scheduled?' scheduled':'') + (on?' on':'') + (diff?' diff':'') + (changedIn?' changed-in':'') + (changedAway?' changed-away':'');
       html += `<div class="${cls}" data-s="${sIdx}" data-p="${pIdx}">${no}</div>`;
     });
     html += `</div></div>`;
@@ -601,40 +722,6 @@ function renderSummary(){
       </div>`;
   });
   wrap.innerHTML = html;
-}
-
-function renderRecordsList(){
-  const body = document.getElementById('recordsBody');
-  const dates = Object.keys(state.records).sort().reverse();
-  if(dates.length===0){
-    body.innerHTML = `<tr><td colspan="3" class="empty-note">아직 기록된 날짜가 없습니다.</td></tr>`;
-    return;
-  }
-  body.innerHTML = dates.map(date=>{
-    const total = dayTotal(date);
-    return `<tr>
-      <td><button class="rec-date-btn" data-date="${date}">${date}</button></td>
-      <td>${total}시간</td>
-      <td><button class="del-btn" data-del="${date}">삭제</button></td>
-    </tr>`;
-  }).join('');
-
-  body.querySelectorAll('.rec-date-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      currentDate = btn.dataset.date;
-      renderAll();
-    });
-  });
-  body.querySelectorAll('.del-btn').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const date = btn.dataset.del;
-      if(confirm(`${date} 기록을 삭제할까요?`)){
-        delete state.records[date];
-        renderAll();
-        await persist();
-      }
-    });
-  });
 }
 
 function escapeHtml(s){
@@ -776,6 +863,118 @@ document.getElementById('saveSchedule').addEventListener('click', async ()=>{
   await persist();
 });
 
+/* ---------- 시간표 변동사항 (근무 날짜/시간 변경 기록) ---------- */
+
+function populateChangeStudentSelect(){
+  const sel = document.getElementById('changeStudentSelect');
+  const prev = sel.value;
+  sel.innerHTML = state.students.map((n,i)=>`<option value="${i}">${escapeHtml(n)}</option>`).join('');
+  if(prev!=='' && +prev < state.students.length) sel.value = prev;
+}
+
+function renderChangeFromPeriods(){
+  const sIdx = +document.getElementById('changeStudentSelect').value;
+  const dateStr = document.getElementById('changeFromDate').value;
+  const wrap = document.getElementById('changeFromPeriods');
+  if(!dateStr){
+    wrap.innerHTML = `<span class="period-check empty">날짜를 먼저 선택하세요</span>`;
+    return;
+  }
+  const scheduled = getScheduledPeriodsForDate(sIdx, dateStr);
+  if(scheduled.length===0){
+    wrap.innerHTML = `<span class="period-check empty">이 날은 등록된 근무 시간표가 없습니다</span>`;
+    return;
+  }
+  wrap.innerHTML = scheduled.map(p=>{
+    const {no,time} = periodLabel(p);
+    return `<label class="period-check"><input type="checkbox" class="from-p-check" value="${p}" checked>${no} (${time})</label>`;
+  }).join('');
+}
+
+function renderChangeToPeriods(){
+  const wrap = document.getElementById('changeToPeriods');
+  const dateStr = document.getElementById('changeToDate').value;
+  if(!dateStr){
+    wrap.innerHTML = `<span class="period-check empty">날짜를 먼저 선택하세요</span>`;
+    return;
+  }
+  wrap.innerHTML = periodListExcludingLunch().map(p=>{
+    const {no,time} = periodLabel(p);
+    return `<label class="period-check"><input type="checkbox" class="to-p-check" value="${p}">${no} (${time})</label>`;
+  }).join('');
+}
+
+document.getElementById('changeStudentSelect').addEventListener('change', renderChangeFromPeriods);
+document.getElementById('changeFromDate').addEventListener('change', renderChangeFromPeriods);
+document.getElementById('changeToDate').addEventListener('change', renderChangeToPeriods);
+document.getElementById('saveChangeBtn').addEventListener('click', saveChangeRecord);
+
+async function saveChangeRecord(){
+  const sIdx = +document.getElementById('changeStudentSelect').value;
+  const fromDate = document.getElementById('changeFromDate').value;
+  const toDate = document.getElementById('changeToDate').value;
+  const fromPeriods = Array.from(document.querySelectorAll('.from-p-check:checked')).map(el=>+el.value);
+  const toPeriods = Array.from(document.querySelectorAll('.to-p-check:checked')).map(el=>+el.value);
+
+  if(!fromDate || !toDate){ alert('원래 날짜와 변경할 날짜를 모두 선택해주세요.'); return; }
+  if(fromPeriods.length===0){ alert('원래 근무 시간(교시)을 1개 이상 선택해주세요.'); return; }
+  if(toPeriods.length===0){ alert('변경할 근무 시간(교시)을 1개 이상 선택해주세요.'); return; }
+
+  state.changes.push({
+    id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+    student: sIdx,
+    fromDate, fromPeriods,
+    toDate, toPeriods,
+    createdAt: todayStr()
+  });
+
+  document.getElementById('changeFromDate').value = todayStr();
+  document.getElementById('changeToDate').value = tomorrowStr();
+
+  renderAll();
+  await persist();
+}
+
+function renderChangeLog(){
+  populateChangeStudentSelect();
+
+  const fromInput = document.getElementById('changeFromDate');
+  const toInput = document.getElementById('changeToDate');
+  if(!fromInput.value) fromInput.value = todayStr();
+  if(!toInput.value) toInput.value = tomorrowStr();
+
+  renderChangeFromPeriods();
+  renderChangeToPeriods();
+
+  const list = document.getElementById('changeLogList');
+  const changes = [...(state.changes||[])].sort((a,b)=> b.toDate.localeCompare(a.toDate));
+  if(changes.length===0){
+    list.innerHTML = `<div class="empty-note">아직 등록된 변동사항이 없습니다.</div>`;
+    return;
+  }
+  list.innerHTML = changes.map(c=>{
+    const name = state.students[c.student] || `근로학생${c.student+1}`;
+    const fromTxt = c.fromPeriods.map(p=>periodLabel(p).no).join(', ');
+    const toTxt = c.toPeriods.map(p=>periodLabel(p).no).join(', ');
+    return `<div class="changelog-list-item">
+      <span class="changelog-name">${escapeHtml(name)}</span>
+      <span class="changelog-tag from">${c.fromDate} · ${fromTxt}</span>
+      <span class="changelog-arrow">→</span>
+      <span class="changelog-tag to">${c.toDate} · ${toTxt}</span>
+      <button class="changelog-del" data-id="${c.id}">삭제</button>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.changelog-del').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const id = btn.dataset.id;
+      state.changes = state.changes.filter(c=>c.id!==id);
+      renderAll();
+      await persist();
+    });
+  });
+}
+
 /* ---------- Excel 다운로드 (학생별 · 월별) ---------- */
 const excelOverlay = document.getElementById('excelOverlay');
 
@@ -895,3 +1094,4 @@ initFirebase();
 </script>
 </body>
 </html>
+
