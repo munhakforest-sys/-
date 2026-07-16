@@ -828,7 +828,7 @@
     padding: 12px 0;
   }
 
-  /* Overlay & Modal */
+  /* Overlay & Modal (Apple-style blur & fade modal) */
   .overlay {
     position: fixed;
     inset: 0;
@@ -1179,13 +1179,13 @@
         <div class="changelog-block from">
           <h4>📌 원래 등록된 근무 날짜 · 시간</h4>
           <input type="date" id="changeFromDate">
-          <div style="font-size:11px;color:var(--apple-text-secondary);margin:-6px 0 8px;">평일만 선택할 수 있어요 (주말·공휴일 제외, 오늘 이전 이미 근무 체크가 완료된 날짜 제외)</div>
+          <div style="font-size:11px;color:var(--apple-text-secondary);margin:-6px 0 8px;">평일만 선택할 수 있어요 (주말·공휴일 제외, 이미 근무 체크가 완료된 날짜도 선택 불가)</div>
           <div class="period-check-list" id="changeFromPeriods"></div>
         </div>
         <div class="changelog-block to">
           <h4>🔁 변경할 근무 날짜 · 시간</h4>
           <input type="date" id="changeToDate">
-          <div style="font-size:11px;color:var(--apple-text-secondary);margin:-6px 0 6px;">평일만 선택할 수 있어요 (주말·공휴일 제외, 오늘 이전 이미 근무 체크가 완료된 날짜 제외)</div>
+          <div style="font-size:11px;color:var(--apple-text-secondary);margin:-6px 0 6px;">평일만 선택할 수 있어요 (주말·공휴일 제외, 이미 근무 체크가 완료된 날짜도 선택 불가)</div>
           <div id="toPeriodsHint" style="font-size:11px;color:var(--apple-orange);font-weight:600;margin:-2px 0 8px;"></div>
           <div class="period-check-list" id="changeToPeriods"></div>
         </div>
@@ -1501,6 +1501,14 @@ function hasAttendanceCheck(sIdx, dateStr){
 }
 
 /* ---------- Rendering ---------- */
+
+function renderAll(){
+  if(!state) return;
+  document.getElementById('datePicker').value = currentDate;
+  renderGrid();
+  renderSummary();
+  renderChangeLog();
+}
 
 function renderGrid(){
   const table = document.getElementById('gridTable');
@@ -1964,20 +1972,14 @@ function updateSaveButtonForEditing(){
 
 function validateChangeDateInput(inputEl, dateStr, editingOwnDate){
   if(!dateStr) return true;
-  
-  // 1. 주말 & 공휴일 검사
   if(isNonWorkday(dateStr)){
     alert(`${nonWorkdayReason(dateStr)}에는 근로학생이 출근하지 않아 선택할 수 없어요. 평일(공휴일 제외)을 선택해주세요.`);
     inputEl.value = '';
     return false;
   }
-  
-  // 2. 오늘 이전(과거) 날짜에 대해서만 출근체크 완료 여부 검사
   const sIdx = +document.getElementById('changeStudentSelect').value;
-  const today = todayStr();
-  
-  if(!editingOwnDate && dateStr < today && hasAttendanceCheck(sIdx, dateStr)){
-    alert('오늘 이전의 과거 날짜 중 이미 근무 체크(출근 도장)가 완료된 날짜는 선택할 수 없어요. 아직 체크되지 않았거나 오늘 이후의 날짜를 선택해주세요.');
+  if(!editingOwnDate && hasAttendanceCheck(sIdx, dateStr)){
+    alert('이 날짜는 이미 근무 체크(출근 도장)가 완료되어 선택할 수 없어요. 아직 체크되지 않은 다른 날짜를 선택해주세요.');
     inputEl.value = '';
     return false;
   }
