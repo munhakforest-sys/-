@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>인문사회관 근로학생 출퇴근 관리 시스템</title>
 <meta property="og:title" content="인문사회관 근로학생 출퇴근 관리 시스템">
 <meta property="og:description" content="교시별 출근 체크와 누적 근로시간을 확인하는 관리 시스템입니다.">
@@ -44,7 +44,7 @@
     margin: 0;
     background-color: var(--apple-bg);
     color: var(--apple-text);
-    padding: 40px 20px 100px;
+    padding: 20px 12px 100px;
     min-height: 100vh;
     line-height: 1.47059;
   }
@@ -61,8 +61,8 @@
     align-items: flex-end;
     flex-wrap: wrap;
     gap: 16px;
-    padding-bottom: 24px;
-    margin-bottom: 32px;
+    padding-bottom: 20px;
+    margin-bottom: 24px;
     border-bottom: 1px solid var(--apple-border);
   }
 
@@ -78,17 +78,19 @@
 
   h1 {
     font-weight: 700;
-    font-size: 32px;
+    font-size: 26px;
     margin: 0;
     color: var(--apple-dark);
     letter-spacing: -0.03em;
+    line-height: 1.2;
   }
 
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
+    width: 100%;
   }
 
   /* Buttons */
@@ -98,10 +100,13 @@
     border: none;
     font-size: 13px;
     font-weight: 500;
-    padding: 10px 18px;
+    padding: 10px 14px;
     border-radius: 20px;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+    flex: 1 1 auto;
+    text-align: center;
+    min-height: 40px;
   }
 
   .settings-btn:hover {
@@ -136,13 +141,16 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
-    padding: 8px 14px;
+    padding: 6px 12px;
     border-radius: 20px;
     color: var(--apple-text-secondary);
     background: var(--apple-card);
     border: 1px solid var(--apple-border);
+    width: 100%;
+    justify-content: center;
+    order: -1;
   }
 
   .status-dot {
@@ -165,25 +173,32 @@
   .datebar {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     background: var(--apple-card);
     border: 1px solid rgba(0, 0, 0, 0.08);
     box-shadow: var(--card-shadow);
     border-radius: 14px;
-    padding: 12px 18px;
-    margin-bottom: 24px;
+    padding: 12px;
+    margin-bottom: 20px;
     flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .datebar .nav-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .datebar button.nav {
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     border: 1px solid var(--apple-border);
     background: var(--apple-bg);
     color: var(--apple-text);
     border-radius: 50%;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 18px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -198,13 +213,15 @@
 
   .datebar input[type=date] {
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     border: 1px solid var(--apple-border);
     border-radius: 8px;
-    padding: 8px 12px;
+    padding: 8px 10px;
     color: var(--apple-text);
     background: var(--apple-card);
-    transition: border-color 0.2s;
+    height: 40px;
+    flex-grow: 1;
+    text-align: center;
   }
 
   .datebar input[type=date]:focus {
@@ -214,9 +231,13 @@
 
   .datebar .today-label {
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--apple-text-secondary);
-    margin-left: auto;
+    width: 100%;
+    text-align: center;
+    margin-top: 4px;
+    border-top: 1px solid var(--apple-bg);
+    padding-top: 8px;
   }
 
   .datebar .today-btn {
@@ -229,6 +250,7 @@
     border-radius: 16px;
     cursor: pointer;
     transition: all 0.2s;
+    height: 40px;
   }
 
   .datebar .today-btn:hover {
@@ -243,24 +265,35 @@
     border: 1px solid rgba(0, 0, 0, 0.08);
     box-shadow: var(--card-shadow);
     border-radius: 18px;
-    padding: 28px;
-    margin-bottom: 28px;
+    padding: 16px;
+    margin-bottom: 20px;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .card h2 {
     font-weight: 600;
-    font-size: 20px;
-    margin: 0 0 20px;
+    font-size: 18px;
+    margin: 0 0 16px;
     color: var(--apple-dark);
     letter-spacing: -0.025em;
+  }
+
+  /* Grid Table Container for horizontal scroll indicator */
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--apple-border);
   }
 
   /* Grid Table */
   table.grid {
     border-collapse: collapse;
     width: 100%;
-    min-width: 680px;
+    min-width: 750px;
   }
 
   table.grid th, table.grid td {
@@ -271,34 +304,37 @@
 
   table.grid thead th {
     background: var(--apple-bg);
-    padding: 12px 6px;
+    padding: 10px 4px;
     font-weight: 600;
   }
 
   table.grid thead .period-no {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--apple-text);
   }
 
   table.grid thead .period-time {
     display: block;
-    font-size: 10px;
+    font-size: 9px;
     font-family: 'SF Pro Text', sans-serif;
     color: var(--apple-text-secondary);
-    margin-top: 4px;
+    margin-top: 2px;
     font-weight: 400;
   }
 
   table.grid th.student-col {
     text-align: left;
-    padding: 12px 16px;
+    padding: 10px 12px;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13px;
     background: var(--apple-dark);
     color: var(--apple-card);
-    min-width: 120px;
+    min-width: 100px;
     border-color: var(--apple-dark);
+    position: sticky;
+    left: 0;
+    z-index: 2;
   }
 
   th.lunch-head {
@@ -306,8 +342,8 @@
   }
 
   td.cell {
-    width: 60px;
-    height: 60px;
+    width: 58px;
+    height: 58px;
     cursor: pointer;
     position: relative;
     transition: background 0.15s ease;
@@ -362,8 +398,8 @@
 
   /* Stamp Design */
   .stamp {
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
     margin: 0 auto;
     border-radius: 50%;
     border: 2px solid var(--apple-red);
@@ -371,7 +407,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     transform: rotate(-10deg);
     opacity: 0;
@@ -401,43 +437,44 @@
   }
 
   .daytotal {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--apple-text);
     font-weight: 600;
+    padding: 0 4px;
   }
 
   /* Badges */
   .changed-badge {
     position: absolute;
-    top: 4px;
-    right: 4px;
+    top: 3px;
+    right: 3px;
     font-size: 8px;
     background: var(--apple-orange);
     color: var(--apple-card);
     border-radius: 4px;
-    padding: 1px 4px;
+    padding: 1px 3px;
     font-weight: 600;
   }
 
   .moved-badge {
     position: absolute;
-    bottom: 4px;
-    left: 4px;
+    bottom: 3px;
+    left: 3px;
     font-size: 8px;
     background: var(--apple-text-secondary);
     color: var(--apple-card);
     border-radius: 4px;
-    padding: 1px 4px;
+    padding: 1px 3px;
     font-weight: 600;
   }
 
   /* Legend */
   .legend {
     display: flex;
-    gap: 20px;
-    margin-top: 24px;
-    flex-wrap: wrap;
-    padding-top: 20px;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
     border-top: 1px solid var(--apple-border);
   }
 
@@ -485,44 +522,46 @@
   /* Notices */
   .today-changes {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 0 0 16px;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0 0 12px;
   }
 
   .holiday-notice {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--apple-red);
     background: #FFEBEA;
     border: 1px solid rgba(255, 69, 58, 0.2);
-    padding: 6px 14px;
-    border-radius: 20px;
-    margin-bottom: 14px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    width: 100%;
   }
 
   .today-change-chip {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--apple-orange);
     background: #FFF4E5;
     border: 1px solid rgba(255, 149, 0, 0.25);
-    padding: 6px 14px;
-    border-radius: 20px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    width: 100%;
   }
 
   /* Summary Grid */
   .summary-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
   }
 
   .stu-card {
@@ -530,25 +569,21 @@
     border: 1px solid rgba(0, 0, 0, 0.08);
     box-shadow: var(--card-shadow);
     border-radius: 14px;
-    padding: 20px;
+    padding: 16px;
     transition: transform 0.2s;
-  }
-
-  .stu-card:hover {
-    transform: translateY(-2px);
   }
 
   .stu-name {
     font-weight: 600;
-    font-size: 16px;
-    margin-bottom: 10px;
+    font-size: 15px;
+    margin-bottom: 8px;
     display: flex;
     justify-content: space-between;
     align-items: baseline;
   }
 
   .stu-name .pct {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--apple-text-secondary);
     font-weight: 400;
   }
@@ -559,7 +594,7 @@
     background: var(--apple-bg);
     border-radius: 4px;
     overflow: hidden;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
 
   .bar-fill {
@@ -574,18 +609,18 @@
   }
 
   .stu-hours {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--apple-text-secondary);
   }
 
   .stu-hours b {
     color: var(--apple-dark);
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .complete-tag {
     display: inline-block;
-    margin-top: 8px;
+    margin-top: 6px;
     font-size: 11px;
     font-weight: 600;
     color: var(--apple-green);
@@ -602,37 +637,36 @@
 
   #changeStudentSelect {
     width: 100%;
-    max-width: 320px;
-    padding: 10px 14px;
-    margin-bottom: 20px;
+    padding: 12px;
+    margin-bottom: 16px;
     border: 1px solid var(--apple-border);
     border-radius: 8px;
     font-size: 14px;
     background: var(--apple-card);
     color: var(--apple-text);
+    height: 44px;
   }
 
   .changelog-form {
     display: flex;
     flex-direction: column;
     gap: 16px;
-    margin-bottom: 24px;
-    padding-bottom: 24px;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
     border-bottom: 1px solid var(--apple-border);
   }
 
   .changelog-form .row {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 16px;
   }
 
   .changelog-block {
-    flex: 1 1 240px;
     background: var(--apple-bg);
     border: 1px solid var(--apple-border);
     border-radius: 12px;
-    padding: 16px;
+    padding: 12px;
   }
 
   .changelog-block h4 {
@@ -653,26 +687,27 @@
   .changelog-block input[type=date] {
     width: 100%;
     padding: 10px 12px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     border: 1px solid var(--apple-border);
     border-radius: 8px;
     font-size: 14px;
     background: var(--apple-card);
     color: var(--apple-text);
+    height: 40px;
   }
 
   .period-check-list {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 6px;
   }
 
   .period-check {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border-radius: 20px;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 8px;
     border: 1px solid var(--apple-border);
     background: var(--apple-card);
     font-size: 12px;
@@ -680,16 +715,20 @@
     cursor: pointer;
     user-select: none;
     transition: all 0.2s;
+    min-height: 40px;
   }
 
   .period-check input {
     margin: 0;
+    width: 18px;
+    height: 18px;
   }
 
   .period-check.empty {
     color: var(--apple-text-secondary);
     border-style: dashed;
     cursor: default;
+    justify-content: center;
   }
 
   .period-check.limit-disabled {
@@ -713,7 +752,7 @@
 
   .changelog-save-row {
     display: flex;
-    justify-content: flex-end;
+    flex-direction: column;
     gap: 10px;
   }
 
@@ -721,12 +760,13 @@
     background: var(--apple-blue);
     color: var(--apple-card);
     border: none;
-    padding: 10px 22px;
+    padding: 12px;
     border-radius: 20px;
     font-weight: 500;
-    font-size: 13px;
+    font-size: 14px;
     cursor: pointer;
     transition: all 0.2s;
+    width: 100%;
   }
 
   .changelog-save-row button:hover {
@@ -746,12 +786,12 @@
   /* Changelog List */
   .changelog-list-item {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
     padding: 14px 0;
     border-bottom: 1px solid var(--apple-border);
-    font-size: 14px;
+    font-size: 13px;
   }
 
   .changelog-list-item:last-child {
@@ -761,14 +801,15 @@
   .changelog-list-item.editing {
     background: rgba(0, 113, 227, 0.05);
     border-radius: 8px;
-    padding: 14px 12px;
+    padding: 12px;
   }
 
   .changelog-tag {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
-    padding: 4px 10px;
-    border-radius: 12px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    display: inline-block;
   }
 
   .changelog-tag.from {
@@ -783,17 +824,25 @@
 
   .changelog-arrow {
     color: var(--apple-text-secondary);
+    align-self: center;
+    transform: rotate(90deg);
+    margin: -2px 0;
   }
 
   .changelog-name {
     font-weight: 600;
+    font-size: 14px;
   }
 
   .changelog-actions {
-    margin-left: auto;
+    margin-top: 4px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
+    width: 100%;
+    justify-content: flex-end;
+    border-top: 1px dashed var(--apple-border);
+    padding-top: 8px;
   }
 
   .changelog-edit {
@@ -803,6 +852,7 @@
     cursor: pointer;
     font-size: 13px;
     font-weight: 500;
+    padding: 6px 0;
   }
 
   .changelog-edit:hover {
@@ -816,6 +866,7 @@
     cursor: pointer;
     font-size: 13px;
     font-weight: 500;
+    padding: 6px 0;
   }
 
   .changelog-del:hover {
@@ -824,8 +875,9 @@
 
   .empty-note {
     color: var(--apple-text-secondary);
-    font-size: 14px;
+    font-size: 13px;
     padding: 12px 0;
+    text-align: center;
   }
 
   /* Overlay & Modal (Apple-style blur & fade modal) */
@@ -833,13 +885,13 @@
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     display: none;
     align-items: center;
     justify-content: center;
     z-index: 50;
-    padding: 20px;
+    padding: 16px;
     opacity: 0;
     transition: opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1);
   }
@@ -850,14 +902,14 @@
   }
 
   .modal {
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 20px;
     max-width: 460px;
     width: 100%;
-    padding: 32px;
+    padding: 20px;
     box-shadow: var(--modal-shadow);
-    max-height: 90vh;
+    max-height: 85vh;
     overflow-y: auto;
     transform: scale(0.94) translateY(10px);
     transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
@@ -872,11 +924,11 @@
   }
 
   .modal h3 {
-    margin: 0 0 16px;
-    font-size: 22px;
+    margin: 0 0 14px;
+    font-size: 18px;
     font-weight: 600;
     border-bottom: 1px solid var(--apple-border);
-    padding-bottom: 14px;
+    padding-bottom: 10px;
     color: var(--apple-dark);
   }
 
@@ -890,57 +942,62 @@
 
   .modal input[type=text], .modal input[type=number] {
     width: 100%;
-    padding: 10px 12px;
-    margin-bottom: 16px;
+    padding: 12px;
+    margin-bottom: 14px;
     border: 1px solid var(--apple-border);
     border-radius: 8px;
     font-size: 14px;
     background: var(--apple-card);
+    height: 44px;
   }
 
   .modal select {
     width: 100%;
-    padding: 10px 12px;
+    padding: 12px;
+    margin-bottom: 14px;
+    border: 1px solid var(--apple-border);
+    border-radius: 8px;
+    font-size: 14px;
+    background: var(--apple-card);
+    color: var(--apple-text);
+    height: 44px;
+  }
+
+  .modal input[type=month] {
+    width: 100%;
+    padding: 12px;
     margin-bottom: 16px;
     border: 1px solid var(--apple-border);
     border-radius: 8px;
     font-size: 14px;
-    background: var(--apple-card);
-    color: var(--apple-text);
-  }
-
-  .modal input[type=month] {
-    width: auto;
-    min-width: 180px;
-    padding: 10px 12px;
-    margin-bottom: 18px;
-    border: 1px solid var(--apple-border);
-    border-radius: 8px;
-    font-size: 14px;
     color: var(--apple-text);
     background: var(--apple-card);
+    height: 44px;
   }
 
   .modal-actions {
     display: flex;
-    justify-content: flex-end;
+    flex-direction: column;
     gap: 10px;
-    margin-top: 12px;
+    margin-top: 16px;
   }
 
   .modal-actions button {
-    padding: 10px 22px;
+    padding: 12px;
     border-radius: 20px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     border: none;
     transition: all 0.2s;
+    width: 100%;
+    text-align: center;
   }
 
   .btn-cancel {
     background: var(--apple-bg);
     color: var(--apple-text);
+    order: 1;
   }
 
   .btn-cancel:hover {
@@ -957,10 +1014,10 @@
   }
 
   .note {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--apple-text-secondary);
-    margin-top: -8px;
-    margin-bottom: 18px;
+    margin-top: -6px;
+    margin-bottom: 14px;
     line-height: 1.5;
   }
 
@@ -968,20 +1025,22 @@
   #scheduleTabs {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 16px;
+    gap: 6px;
+    margin-bottom: 14px;
   }
 
   .sched-tab {
-    padding: 8px 16px;
+    padding: 8px 12px;
     border: 1px solid var(--apple-border);
     background: var(--apple-card);
     border-radius: 20px;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
     cursor: pointer;
     color: var(--apple-text);
     transition: all 0.2s;
+    flex: 1 1 auto;
+    text-align: center;
   }
 
   .sched-tab.summary-tab {
@@ -1040,7 +1099,7 @@
     border: 1px solid var(--apple-border);
     text-align: center;
     padding: 0;
-    font-size: 13px;
+    font-size: 12px;
   }
 
   table.sched-grid thead th {
@@ -1051,9 +1110,9 @@
   }
 
   th.sched-period-label {
-    font-size: 12px;
+    font-size: 11px;
     background: var(--apple-bg);
-    padding: 8px 12px;
+    padding: 8px;
     text-align: left;
     color: var(--apple-text);
     white-space: nowrap;
@@ -1064,7 +1123,7 @@
     height: 38px;
     color: var(--apple-blue);
     font-weight: 700;
-    font-size: 14px;
+    font-size: 13px;
     transition: background 0.1s;
   }
 
@@ -1080,7 +1139,7 @@
     cursor: default;
     background: #F2F2F7;
     color: var(--apple-text-secondary);
-    font-size: 11px;
+    font-size: 10px;
   }
 
   /* Setup banner */
@@ -1088,16 +1147,16 @@
     background: #1D1D1F;
     color: #F5F5F7;
     border-radius: 14px;
-    padding: 24px;
-    margin-bottom: 24px;
-    line-height: 1.6;
-    font-size: 14px;
+    padding: 16px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+    font-size: 13px;
   }
 
   .setup-banner h2 {
     color: var(--apple-card);
     margin: 0 0 10px;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
   }
 
@@ -1106,21 +1165,238 @@
     padding: 2px 6px;
     border-radius: 4px;
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .setup-banner ol {
-    margin: 12px 0 0;
-    padding-left: 20px;
+    margin: 10px 0 0;
+    padding-left: 16px;
   }
 
   .setup-banner li {
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
 
   /* Mobile style always off as requested */
   .mobile-grid {
     display: none;
+  }
+
+  /* ---------- Tablet & PC (min-width: 768px) Media Queries ---------- */
+  @media (min-width: 768px) {
+    body {
+      padding: 40px 20px 100px;
+    }
+
+    h1 {
+      font-size: 32px;
+    }
+
+    .header-actions {
+      width: auto;
+      gap: 10px;
+    }
+
+    .settings-btn {
+      flex: 0 0 auto;
+      padding: 10px 18px;
+    }
+
+    .status-pill {
+      width: auto;
+      font-size: 12px;
+      padding: 8px 14px;
+      order: 0;
+    }
+
+    .datebar {
+      padding: 12px 18px;
+      flex-wrap: nowrap;
+    }
+
+    .datebar input[type=date] {
+      width: auto;
+      flex-grow: 0;
+    }
+
+    .datebar .today-label {
+      width: auto;
+      text-align: right;
+      margin-top: 0;
+      border-top: none;
+      padding-top: 0;
+      margin-left: auto;
+    }
+
+    .card {
+      padding: 28px;
+      margin-bottom: 28px;
+    }
+
+    .card h2 {
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+
+    table.grid thead th {
+      padding: 12px 6px;
+    }
+
+    table.grid thead .period-no {
+      font-size: 13px;
+    }
+
+    table.grid thead .period-time {
+      font-size: 10px;
+      margin-top: 4px;
+    }
+
+    table.grid th.student-col {
+      padding: 12px 16px;
+      font-size: 14px;
+      min-width: 120px;
+    }
+
+    td.cell {
+      width: 60px;
+      height: 60px;
+    }
+
+    .stamp {
+      width: 38px;
+      height: 38px;
+      font-size: 16px;
+    }
+
+    .daytotal {
+      font-size: 13px;
+    }
+
+    .legend {
+      flex-direction: row;
+      gap: 20px;
+      margin-top: 24px;
+      padding-top: 20px;
+    }
+
+    .holiday-notice, .today-change-chip {
+      width: auto;
+      border-radius: 20px;
+    }
+
+    .today-changes {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .summary-grid {
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stu-card {
+      padding: 20px;
+    }
+
+    .stu-name {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    .stu-hours {
+      font-size: 13px;
+    }
+
+    .stu-hours b {
+      font-size: 16px;
+    }
+
+    #changeStudentSelect {
+      width: 100%;
+      max-width: 320px;
+    }
+
+    .changelog-form .row {
+      flex-direction: row;
+    }
+
+    .changelog-block {
+      flex: 1 1 240px;
+      padding: 16px;
+    }
+
+    .period-check-list {
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+
+    .changelog-save-row {
+      flex-direction: row;
+      justify-content: flex-end;
+    }
+
+    .changelog-save-row button {
+      width: auto;
+      padding: 10px 22px;
+      font-size: 13px;
+    }
+
+    .changelog-list-item {
+      flex-direction: row;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    .changelog-arrow {
+      transform: none;
+    }
+
+    .changelog-actions {
+      width: auto;
+      border-top: none;
+      padding-top: 0;
+    }
+
+    .modal {
+      padding: 32px;
+    }
+
+    .modal h3 {
+      font-size: 22px;
+    }
+
+    .modal-actions {
+      flex-direction: row;
+      justify-content: flex-end;
+    }
+
+    .modal-actions button {
+      width: auto;
+      padding: 10px 22px;
+    }
+
+    .btn-cancel {
+      order: 0;
+    }
+
+    #scheduleTabs {
+      gap: 8px;
+    }
+
+    .sched-tab {
+      font-size: 12px;
+      flex: 0 0 auto;
+    }
+
+    th.sched-period-label {
+      font-size: 12px;
+    }
+
+    td.sched-cell {
+      font-size: 14px;
+    }
   }
 </style>
 </head>
@@ -1134,18 +1410,20 @@
     <div class="header-actions">
       <span class="status-pill" id="statusPill"><span class="status-dot wait" id="statusDot"></span><span id="statusText">연결 중…</span></span>
       <button class="settings-btn excel-btn" id="openExcel">📥 엑셀 다운로드</button>
-      <button class="settings-btn schedule-btn" id="openSchedule">🗓 근로 시간표 설정</button>
-      <button class="settings-btn" id="openSettings">⚙ 학생·목표시간 설정</button>
+      <button class="settings-btn schedule-btn" id="openSchedule">🗓 시간표 설정</button>
+      <button class="settings-btn" id="openSettings">⚙ 학생·시간 설정</button>
     </div>
   </header>
 
   <div id="setupBannerWrap"></div>
 
   <div class="datebar">
-    <button class="nav" id="prevDay">‹</button>
+    <div class="nav-group">
+      <button class="nav" id="prevDay">‹</button>
+      <button class="today-btn" id="gotoToday">오늘</button>
+      <button class="nav" id="nextDay">›</button>
+    </div>
     <input type="date" id="datePicker">
-    <button class="nav" id="nextDay">›</button>
-    <button class="today-btn" id="gotoToday">오늘</button>
     <span class="today-label" id="dayTotalLabel"></span>
   </div>
 
@@ -1153,7 +1431,12 @@
     <h2 id="gridTitle">교시별 출근 체크</h2>
     <div id="holidayNotice"></div>
     <div class="today-changes" id="todayChanges"></div>
-    <table class="grid" id="gridTable"></table>
+    
+    <!-- 모바일 가로스크롤 및 터치를 위해 반응형 래퍼 추가 -->
+    <div class="table-responsive">
+      <table class="grid" id="gridTable"></table>
+    </div>
+    
     <div class="mobile-grid" id="gridMobile"></div>
     <div class="legend">
       <span class="legend-item"><span class="legend-swatch swatch-scheduled"></span>정규 근무 시간(시간표)</span>
@@ -1224,7 +1507,7 @@
     <label>설정할 달</label>
     <input type="month" id="scheduleMonthPicker">
     <div id="scheduleTabs"></div>
-    <div style="overflow-x:auto;">
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--apple-border);border-radius:8px;">
       <table class="sched-grid" id="scheduleGridTable"></table>
     </div>
     <div class="modal-actions">
