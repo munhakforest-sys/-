@@ -661,6 +661,68 @@
     margin: 0;
   }
 
+  .lock-card-head-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .lock-viewall-btn {
+    color: var(--apple-red);
+    border-color: rgba(209, 36, 41, 0.25);
+  }
+
+  .lock-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .lock-modal-head h3 {
+    margin: 0;
+  }
+
+  .lock-teaser-note {
+    font-size: 12.5px;
+    color: var(--apple-text-secondary);
+    line-height: 1.6;
+  }
+
+  .lock-edit-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .lock-edit-textarea {
+    width: 100%;
+    min-height: 110px;
+    box-sizing: border-box;
+    border: 1.5px solid var(--apple-border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    line-height: 1.6;
+    resize: vertical;
+    margin-top: 8px;
+  }
+
+  .lock-edited-badge {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--apple-orange);
+    background: var(--apple-orange-light);
+    border-radius: 8px;
+    padding: 3px 8px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
   .lock-upload-btn {
     background: var(--apple-bg);
     color: var(--apple-text);
@@ -689,34 +751,27 @@
   }
 
   .lock-summary-sentence {
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--apple-dark);
     background: var(--apple-red-light);
     border: 1px solid rgba(209, 36, 41, 0.15);
     border-radius: 12px;
-    padding: 12px 14px;
-    margin-bottom: 12px;
-    line-height: 1.55;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    line-height: 1.5;
   }
 
-  .lock-floor-row {
+  .lock-floor-badges {
     display: flex;
-    align-items: center;
     flex-wrap: wrap;
-    gap: 8px;
-    padding: 8px 2px;
-    border-bottom: 1px solid var(--apple-border);
-  }
-
-  .lock-floor-row:last-of-type {
-    border-bottom: none;
+    gap: 6px;
   }
 
   .lock-floor-badge {
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 700;
-    padding: 5px 10px;
+    padding: 6px 10px;
     border-radius: 10px;
     white-space: nowrap;
   }
@@ -731,32 +786,48 @@
     background: var(--apple-orange-light);
   }
 
-  .lock-floor-desc {
-    font-size: 12px;
-    color: var(--apple-text-secondary);
+  .lock-detail-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    color: var(--apple-blue);
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 8px 0 0;
+    cursor: pointer;
+  }
+
+  .lock-detail-toggle:hover {
+    text-decoration: underline;
   }
 
   .lock-exception-list {
-    display: flex;
+    display: none;
     flex-direction: column;
-    gap: 6px;
-    margin: 2px 0 10px 2px;
+    gap: 5px;
+    margin: 8px 0 0;
+  }
+
+  .lock-exception-list.show {
+    display: flex;
   }
 
   .lock-exception-chip {
-    font-size: 11.5px;
+    font-size: 11px;
     color: var(--apple-green);
     background: var(--apple-green-light);
     border: 1px solid rgba(36, 138, 61, 0.15);
     border-radius: 10px;
-    padding: 7px 10px;
-    line-height: 1.5;
+    padding: 6px 9px;
+    line-height: 1.45;
   }
 
   .lock-updated {
     font-size: 10.5px;
     color: var(--apple-text-secondary);
-    margin-top: 12px;
+    margin-top: 10px;
     text-align: right;
   }
 
@@ -1734,10 +1805,12 @@
   <div class="card lock-card" id="lockNoticeCard">
     <div class="lock-card-head">
       <h2 id="lockNoticeTitle">🔒 문단속 공지</h2>
-      <button class="lock-upload-btn" id="lockUploadBtnInline">📤 예약현황 엑셀 업로드</button>
+      <div class="lock-card-head-actions">
+        <button class="lock-upload-btn" id="lockUploadBtnInline">📤 예약현황 엑셀 업로드</button>
+        <button class="lock-upload-btn lock-viewall-btn" id="lockViewAllBtn">전체 보기 →</button>
+      </div>
     </div>
-    <div id="lockNoticeBody"></div>
-    <div class="lock-updated" id="lockNoticeUpdatedAt"></div>
+    <div id="lockNoticeTeaser"></div>
   </div>
   <input type="file" id="lockExcelInput" accept=".xls,.xlsx" style="display:none;">
 
@@ -1841,6 +1914,20 @@
     <div class="modal-actions">
       <button class="btn-cancel" id="cancelExcel">취소</button>
       <button class="btn-save" id="downloadExcelBtn">다운로드</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="lockOverlay">
+  <div class="modal wide">
+    <div class="lock-modal-head">
+      <h3 id="lockModalTitle">🔒 문단속 공지</h3>
+      <button class="lock-upload-btn" id="lockUploadBtnModal">📤 예약현황 엑셀 업로드</button>
+    </div>
+    <div id="lockModalBody"></div>
+    <div class="lock-updated" id="lockModalUpdatedAt"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="closeLockModal">닫기</button>
     </div>
   </div>
 </div>
@@ -1974,7 +2061,8 @@ function defaultState(){
     schedule: {}, 
     changes: [],
     roomReservations: {},
-    roomReservationsUpdatedAt: null
+    roomReservationsUpdatedAt: null,
+    lockNoticeOverrides: {}
   };
 }
 
@@ -2017,6 +2105,7 @@ async function initFirebase(){
         if(!state.changes) state.changes = [];
         if(!state.roomReservations) state.roomReservations = {};
         if(state.roomReservationsUpdatedAt === undefined) state.roomReservationsUpdatedAt = null;
+        if(!state.lockNoticeOverrides) state.lockNoticeOverrides = {};
       } else {
         state = defaultState();
         await docRef.set(state);
@@ -2487,7 +2576,7 @@ function renderChangeFromPeriods(){
   const scheduled = getScheduledPeriodsForDate(sIdx, dateStr);
   if(scheduled.length===0){
     wrap.innerHTML = `<span class="period-check empty">이 날은 등록된 근무 시간표가 없습니다</span>`;
-    syncToPeriodsWithCount();
+    syncToPeriodsWithFromCount();
     return;
   }
   wrap.innerHTML = scheduled.map(p=>{
@@ -3010,27 +3099,24 @@ function handleLockExcelFile(file){
   reader.readAsArrayBuffer(file);
 }
 
-function renderLockNotice(){
-  const titleEl = document.getElementById('lockNoticeTitle');
-  const bodyEl = document.getElementById('lockNoticeBody');
-  const updatedEl = document.getElementById('lockNoticeUpdatedAt');
-  if(!titleEl || !bodyEl) return;
+let lockDetailExpanded = false;
+let lockEditMode = false;
 
-  const [y, m, d] = currentDate.split('-');
-  const mm = parseInt(m, 10), dd = parseInt(d, 10);
-  titleEl.textContent = `🔒 ${mm}월 ${dd}일 문단속 공지`;
-
+// 자동 생성되는 문단속 공지 문구(요약 문장 + 층별 배지 + 예외 상세)를 만들어서 반환
+function buildAutoLockNotice(mm, dd){
   const hasData = state.roomReservations && Object.keys(state.roomReservations).length > 0;
   if(!hasData){
-    bodyEl.innerHTML = `<div class="lock-empty-note">예약현황 엑셀을 업로드하면 이 날짜에 문단속해야 할 호실을 자동으로 알려드려요.<br>(인문사회관 1·2·7층 대상 · 10교시(오후 6시) 이후까지 예약이 있는 호실은 제외)</div>`;
-    if(updatedEl) updatedEl.textContent = '';
-    return;
+    return {
+      hasData: false,
+      plainText: '',
+      html: `<div class="lock-empty-note">예약현황 엑셀을 업로드하면 이 날짜에 문단속해야 할 호실을 자동으로 알려드려요.<br>(인문사회관 1·2·7층 대상 · 10교시(오후 6시) 이후까지 예약이 있는 호실은 제외)</div>`
+    };
   }
 
   const dayReservations = state.roomReservations[currentDate] || [];
-
-  let detailHtml = '';
   const summaryParts = [];
+  const badgeParts = [];
+  const exceptionChips = [];
   LOCK_FLOORS.forEach(floor=>{
     const exceptions = dayReservations
       .filter(r => r.floor === floor && r.pEnd >= LOCK_PERIOD_THRESHOLD)
@@ -3038,25 +3124,129 @@ function renderLockNotice(){
 
     if(exceptions.length === 0){
       summaryParts.push(`${floor}층 전체`);
-      detailHtml += `<div class="lock-floor-row">
-        <span class="lock-floor-badge all">${floor}층 전체</span>
-        <span class="lock-floor-desc">저녁 예약 없음 · 모두 문단속 필요</span>
-      </div>`;
+      badgeParts.push(`<span class="lock-floor-badge all">${floor}층 전체</span>`);
     } else {
       const roomList = exceptions.map(r => r.room + '호').join(', ');
       summaryParts.push(`${floor}층(${roomList} 제외)`);
-      detailHtml += `<div class="lock-floor-row">
-        <span class="lock-floor-badge partial">${floor}층 (${roomList} 제외)</span>
-        <span class="lock-floor-desc">위 호실 제외하고 모두 문단속 필요</span>
-      </div>`;
-      detailHtml += `<div class="lock-exception-list">` + exceptions.map(r =>
-        `<div class="lock-exception-chip">🔓 ${escapeHtml(r.room)}호 · ${univPeriodTimeLabel(r.pStart, r.pEnd)} · ${escapeHtml(r.content || r.dept || '예약 있음')}</div>`
-      ).join('') + `</div>`;
+      badgeParts.push(`<span class="lock-floor-badge partial">${floor}층 (${roomList} 제외)</span>`);
+      exceptions.forEach(r=>{
+        exceptionChips.push(`<div class="lock-exception-chip">🔓 ${escapeHtml(r.room)}호 · ${univPeriodTimeLabel(r.pStart, r.pEnd)} · ${escapeHtml(r.content || r.dept || '예약 있음')}</div>`);
+      });
     }
   });
 
-  const summarySentence = `<div class="lock-summary-sentence">📌 ${mm}월 ${dd}일 문단속하여야 하는 호실은 ${summaryParts.join(', ')}입니다.</div>`;
-  bodyEl.innerHTML = summarySentence + detailHtml;
+  const plainText = `${mm}월 ${dd}일 문단속하여야 하는 호실은 ${summaryParts.join(', ')}입니다.`;
+  const summarySentence = `<div class="lock-summary-sentence">📌 ${escapeHtml(plainText)}</div>`;
+  const badgeRow = `<div class="lock-floor-badges">${badgeParts.join('')}</div>`;
+
+  let toggleHtml = '';
+  let listHtml = '';
+  if(exceptionChips.length > 0){
+    const arrow = lockDetailExpanded ? '▲' : '▾';
+    toggleHtml = `<button class="lock-detail-toggle" id="lockDetailToggle">호실별 예약 상세 보기 (${exceptionChips.length}) ${arrow}</button>`;
+    listHtml = `<div class="lock-exception-list${lockDetailExpanded ? ' show' : ''}" id="lockExceptionList">${exceptionChips.join('')}</div>`;
+  }
+
+  return { hasData: true, plainText, html: summarySentence + badgeRow + toggleHtml + listHtml };
+}
+
+function renderLockNotice(){
+  const titleEl = document.getElementById('lockNoticeTitle');
+  const modalTitleEl = document.getElementById('lockModalTitle');
+  const teaserEl = document.getElementById('lockNoticeTeaser');
+  const modalBodyEl = document.getElementById('lockModalBody');
+  const updatedEl = document.getElementById('lockModalUpdatedAt');
+  if(!titleEl || !teaserEl || !modalBodyEl) return;
+
+  const [y, m, d] = currentDate.split('-');
+  const mm = parseInt(m, 10), dd = parseInt(d, 10);
+  const dow = new Date(currentDate + 'T00:00:00').getDay();
+  const titleText = `🔒 ${mm}월 ${dd}일(${DOW_LABEL[dow]}) 문단속 공지`;
+  titleEl.textContent = titleText;
+  if(modalTitleEl) modalTitleEl.textContent = titleText;
+
+  const auto = buildAutoLockNotice(mm, dd);
+  const override = state.lockNoticeOverrides && state.lockNoticeOverrides[currentDate];
+
+  // ---- 메인 화면 미리보기(짧게) ----
+  if(override){
+    teaserEl.innerHTML = `<div class="lock-teaser-note">✏️ 직접 작성한 문단속 공지가 있어요. 전체 보기에서 확인하세요.</div>`;
+  } else if(!auto.hasData){
+    teaserEl.innerHTML = `<div class="lock-teaser-note">예약현황 엑셀을 업로드하거나 공지를 직접 작성하면 여기서 안내해드려요.</div>`;
+  } else {
+    teaserEl.innerHTML = `<div class="lock-teaser-note">📌 오늘의 문단속 공지가 준비되어 있어요. 전체 보기에서 확인하세요.</div>`;
+  }
+
+  // ---- 전체 보기 모달 ----
+  let modalHtml = '';
+  if(lockEditMode){
+    const draft = override !== undefined && override !== null ? override : auto.plainText;
+    modalHtml = `
+      <textarea class="lock-edit-textarea" id="lockEditTextarea" placeholder="문단속 공지 내용을 입력하세요">${escapeHtml(draft)}</textarea>
+      <div class="lock-edit-actions">
+        <button class="btn-save" id="lockSaveBtn">저장</button>
+        <button class="btn-cancel" id="lockCancelEditBtn">취소</button>
+      </div>`;
+  } else if(override){
+    modalHtml = `
+      <div class="lock-summary-sentence">📌 ${escapeHtml(override).replace(/\n/g, '<br>')}<span class="lock-edited-badge">직접 작성</span></div>
+      <div class="lock-edit-actions">
+        <button class="lock-detail-toggle" id="lockEditBtn">✏️ 수정하기</button>
+        <button class="lock-detail-toggle" id="lockRevertBtn">↺ 자동 생성 문구로 되돌리기</button>
+      </div>`;
+  } else {
+    modalHtml = `
+      ${auto.html}
+      <div class="lock-edit-actions">
+        <button class="lock-detail-toggle" id="lockEditBtn">✏️ 직접 수정하기</button>
+      </div>`;
+  }
+  modalBodyEl.innerHTML = modalHtml;
+
+  const toggleBtn = document.getElementById('lockDetailToggle');
+  if(toggleBtn){
+    toggleBtn.addEventListener('click', ()=>{
+      lockDetailExpanded = !lockDetailExpanded;
+      renderLockNotice();
+    });
+  }
+  const editBtn = document.getElementById('lockEditBtn');
+  if(editBtn){
+    editBtn.addEventListener('click', ()=>{
+      lockEditMode = true;
+      renderLockNotice();
+    });
+  }
+  const cancelEditBtn = document.getElementById('lockCancelEditBtn');
+  if(cancelEditBtn){
+    cancelEditBtn.addEventListener('click', ()=>{
+      lockEditMode = false;
+      renderLockNotice();
+    });
+  }
+  const saveBtn = document.getElementById('lockSaveBtn');
+  if(saveBtn){
+    saveBtn.addEventListener('click', async ()=>{
+      const text = document.getElementById('lockEditTextarea').value.trim();
+      if(!state.lockNoticeOverrides) state.lockNoticeOverrides = {};
+      if(text){
+        state.lockNoticeOverrides[currentDate] = text;
+      } else {
+        delete state.lockNoticeOverrides[currentDate];
+      }
+      lockEditMode = false;
+      renderLockNotice();
+      await persist();
+    });
+  }
+  const revertBtn = document.getElementById('lockRevertBtn');
+  if(revertBtn){
+    revertBtn.addEventListener('click', async ()=>{
+      if(state.lockNoticeOverrides) delete state.lockNoticeOverrides[currentDate];
+      renderLockNotice();
+      await persist();
+    });
+  }
 
   if(updatedEl){
     if(state.roomReservationsUpdatedAt){
@@ -3068,10 +3258,28 @@ function renderLockNotice(){
   }
 }
 
-document.getElementById('openLockNotice').addEventListener('click', ()=>{
-  document.getElementById('lockNoticeCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+const lockOverlay = document.getElementById('lockOverlay');
+function openLockModal(){
+  lockEditMode = false;
+  renderLockNotice();
+  lockOverlay.classList.add('show');
+}
+document.getElementById('openLockNotice').addEventListener('click', openLockModal);
+document.getElementById('lockViewAllBtn').addEventListener('click', openLockModal);
+document.getElementById('closeLockModal').addEventListener('click', ()=>{
+  lockEditMode = false;
+  lockOverlay.classList.remove('show');
+});
+lockOverlay.addEventListener('click', (e)=>{
+  if(e.target===lockOverlay){
+    lockEditMode = false;
+    lockOverlay.classList.remove('show');
+  }
 });
 document.getElementById('lockUploadBtnInline').addEventListener('click', ()=>{
+  document.getElementById('lockExcelInput').click();
+});
+document.getElementById('lockUploadBtnModal').addEventListener('click', ()=>{
   document.getElementById('lockExcelInput').click();
 });
 document.getElementById('lockExcelInput').addEventListener('change', (e)=>{
