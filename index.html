@@ -2150,6 +2150,13 @@ async function initFirebase(){
   try{
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
+    // 학교/회사 네트워크 등 일부 환경에서 WebChannel(실시간 스트리밍) 연결이
+    // 방화벽/프록시에 막히는 경우가 있어, 막히면 자동으로 long-polling 방식으로
+    // 전환되도록 설정합니다.
+    db.settings({
+      experimentalAutoDetectLongPolling: true,
+      useFetchStreams: false
+    });
     docRef = db.collection('attendance-tracker').doc('main');
 
     docRef.onSnapshot(async (snap)=>{
