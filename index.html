@@ -2029,8 +2029,16 @@ const DOW_LABEL = {0:'일',1:'월',2:'화',3:'수',4:'목',5:'금',6:'토'};
 let state = null;
 let currentDate = todayStr();
 let db = null;
-let docRef = null;
+// 예전엔 문서 하나(docRef)에 전부 저장했지만, 이제는 데이터 성격별로
+// 여러 컬렉션/문서에 나눠 저장해서 동시 편집 충돌을 줄인다.
+let metaRef = null;          // meta/config : 학생 이름, 목표시간
+let lockRef = null;          // lock/overrides : 문단속 공지 수정
+let roomsRef = null;         // rooms/current : 강의실 예약 엑셀 데이터
+let recordsCol = null;       // records/{날짜} : 날짜별 출석 체크
+let scheduleCol = null;      // schedule/{연월} : 월별 시간표
+let changesCol = null;       // changes/{변경id} : 시간표 변경 이력 건별
 let scheduleDraft = {};
+let scheduleDirtyMonths = new Set(); // 시간표 모달에서 실제로 수정한 달만 기록 (저장 시 이 달들만 씀)
 let scheduleActiveMonth = '';
 let scheduleActiveStudent = 0;
 let scheduleViewMode = 'student'; 
@@ -2139,6 +2147,27 @@ function showSetupBanner(){
     </div>`;
 }
 
+// ---------- 데이터 로딩 상태 추적 ----------
+// 6개 소스(meta/records/schedule/changes/lock/rooms)가 각각 처음 한 번씩 로드돼야
+// state가 온전해지므로, 전부 로드되기 전까지는 "동기화됨" 표시를 하지 않는다.
+const _loaded = { meta:false, records:false, schedule:false, changes:false, lock:false, rooms:false };
+function _allLoaded(){ return Object.values(_loaded).every(Boolean); }
+// 여러 사람이 동시에 활발히 쓰면 리스너 여러 개가 짧은 시간에 잇달아 업데이트를 보낼 수 있어서,
+// 매번 즉시 다시 그리지 않고 아주 짧게(약 60ms) 묶어서 한 번만 다시 그린다.
+let _renderDebounceTimer = null;
+function _onAnyUpdate(){
+  if(!_allLoaded()) return;
+  markEverSynced();
+  setStatus('ok', '동기화됨 · 실시간 저장 중');
+  if(_renderDebounceTimer) clearTimeout(_renderDebounceTimer);
+  _renderDebounceTimer = setTimeout(()=>{
+    _renderDebounceTimer = null;
+    renderAll();
+    saveLocalBackup(state);
+    maybeAutoBackup();
+  }, 60);
+}
+
 async function initFirebase(){
   if(!isConfigured){
     showSetupBanner();
@@ -2157,26 +2186,28 @@ async function initFirebase(){
       experimentalAutoDetectLongPolling: true,
       useFetchStreams: false
     });
-    docRef = db.collection('attendance-tracker').doc('main');
 
-    docRef.onSnapshot(async (snap)=>{
+    // meta/config 문서는 예전 "main" 문서 자리를 이어받는다 (backups 서브컬렉션도 여기 그대로 붙어있음).
+    // 학생 이름·목표시간처럼 거의 안 바뀌는 값만 담고, 자주 바뀌는 출석/시간표/변경이력은
+    // 아래에서 별도 컬렉션으로 분리해 동시 편집 충돌을 없앤다.
+    metaRef = db.collection('attendance-tracker').doc('main');
+    lockRef = db.collection('attendance-tracker-lock').doc('overrides');
+    roomsRef = db.collection('attendance-tracker-rooms').doc('current');
+    recordsCol = db.collection('attendance-tracker-records');
+    scheduleCol = db.collection('attendance-tracker-schedule');
+    changesCol = db.collection('attendance-tracker-changes');
+
+    state = defaultState();
+
+    metaRef.onSnapshot(async (snap)=>{
       if(snap.exists){
-        state = snap.data();
-        if(!state.students) state.students = defaultState().students;
-        if(!state.target) state.target = defaultState().target;
-        if(!state.records) state.records = {};
-        if(!state.schedule) state.schedule = {};
-        if(!state.changes) state.changes = [];
-        if(!state.roomReservations) state.roomReservations = {};
-        if(state.roomReservationsUpdatedAt === undefined) state.roomReservationsUpdatedAt = null;
-        if(!state.lockNoticeOverrides) state.lockNoticeOverrides = {};
-        markEverSynced();
-        saveLocalBackup(state);
-        setStatus('ok', '동기화됨 · 실시간 저장 중');
-        renderAll();
-        maybeAutoBackup();
+        const d = snap.data();
+        state.students = d.students || defaultState().students;
+        state.target = d.target || defaultState().target;
+        _loaded.meta = true;
+        _onAnyUpdate();
       } else if(hasEverSynced()){
-        // 이전엔 분명 데이터가 있었는데 문서가 갑자기 사라진 상황.
+        // 이전엔 분명 데이터가 있었는데 설정 문서가 갑자기 사라진 상황.
         // 여기서 defaultState()로 덮어쓰면 데이터가 영구히 사라질 수 있으므로
         // 절대 자동으로 새 문서를 만들지 않고, 최근 클라우드 백업으로 복구를 시도한다.
         console.error('⚠ attendance-tracker/main 문서가 사라진 것을 감지했습니다. 자동 복구를 시도합니다.');
@@ -2188,14 +2219,52 @@ async function initFirebase(){
         }
       } else {
         // 이 브라우저에서 한 번도 동기화된 적이 없는, 정말 처음 쓰는 경우에만 새로 생성
-        state = defaultState();
-        await docRef.set(state);
+        await metaRef.set({ students: defaultState().students, target: defaultState().target });
         markEverSynced();
       }
-    }, (err)=>{
-      console.error(err);
-      setStatus('err', '연결 오류 · Firestore 규칙을 확인해주세요');
-    });
+    }, (err)=>{ console.error(err); setStatus('err', '연결 오류 · Firestore 규칙을 확인해주세요'); });
+
+    lockRef.onSnapshot((snap)=>{
+      state.lockNoticeOverrides = (snap.exists && snap.data().data) || {};
+      _loaded.lock = true;
+      _onAnyUpdate();
+    }, (err)=>{ console.error(err); setStatus('err', '연결 오류 · Firestore 규칙을 확인해주세요'); });
+
+    roomsRef.onSnapshot((snap)=>{
+      const d = snap.exists ? snap.data() : null;
+      state.roomReservations = (d && d.data) || {};
+      state.roomReservationsUpdatedAt = (d && d.updatedAt) || null;
+      _loaded.rooms = true;
+      _onAnyUpdate();
+    }, (err)=>{ console.error(err); setStatus('err', '연결 오류 · Firestore 규칙을 확인해주세요'); });
+
+    // records/schedule/changes는 컬렉션 전체를 실시간 구독한다.
+    // (문서마다 날짜/연월/변경id로 쪼개져 있어서, 전체를 구독해도 "쓰기"는 여전히
+    //  건드린 문서 하나만 영향을 주기 때문에 충돌 문제와는 무관하다.)
+    recordsCol.onSnapshot((snap)=>{
+      const out = {};
+      snap.forEach(doc=>{ out[doc.id] = (doc.data().data) || []; });
+      state.records = out;
+      _loaded.records = true;
+      _onAnyUpdate();
+    }, (err)=>{ console.error(err); setStatus('err', '연결 오류 · Firestore 규칙을 확인해주세요'); });
+
+    scheduleCol.onSnapshot((snap)=>{
+      const out = {};
+      snap.forEach(doc=>{ out[doc.id] = (doc.data().data) || {}; });
+      state.schedule = out;
+      _loaded.schedule = true;
+      _onAnyUpdate();
+    }, (err)=>{ console.error(err); setStatus('err', '연결 오류 · Firestore 규칙을 확인해주세요'); });
+
+    changesCol.onSnapshot((snap)=>{
+      const out = [];
+      snap.forEach(doc=>{ out.push({ id: doc.id, ...doc.data() }); });
+      state.changes = out;
+      _loaded.changes = true;
+      _onAnyUpdate();
+    }, (err)=>{ console.error(err); setStatus('err', '연결 오류 · Firestore 규칙을 확인해주세요'); });
+
   }catch(e){
     console.error(e);
     setStatus('err', '연결 실패');
@@ -2204,20 +2273,94 @@ async function initFirebase(){
   }
 }
 
-async function persist(){
-  if(!isConfigured || !docRef){
-    setStatus('err', '저장 안 됨 · Firebase 미설정');
-    renderAll();
-    return;
-  }
+// ---------- 부분 저장 함수들 (persist를 대체) ----------
+// 예전의 하나뿐이던 persist()는 "전체 state를 통째로 덮어쓰기"였다.
+// 지금은 실제로 바뀐 조각만 정확히 그 문서에 쓰기 때문에, 다른 사람이 동시에
+// 다른 날짜/다른 달/다른 항목을 편집해도 서로의 저장을 덮어쓸 일이 없다.
+
+async function persistMeta(){
+  if(!isConfigured || !metaRef){ setStatus('err', '저장 안 됨 · Firebase 미설정'); renderAll(); return; }
   try{
     setStatus('wait', '저장 중…');
-    await docRef.set(state);
-    saveLocalBackup(state);
-  }catch(e){
-    console.error(e);
-    setStatus('err', '저장 실패 · 다시 시도해주세요');
-  }
+    await metaRef.set({ students: state.students, target: state.target }, { merge: true });
+  }catch(e){ console.error(e); setStatus('err', '저장 실패 · 다시 시도해주세요'); }
+}
+
+// 출석 체크 한 칸(학생 1명, 그 날짜)만 바꾼다. 트랜잭션으로 처리해서
+// 다른 학생이 같은 날짜의 다른 칸을 "거의 동시에" 눌러도 서로 안 지운다.
+async function persistRecordCell(date, sIdx, newVal){
+  if(!isConfigured || !recordsCol) return;
+  try{
+    setStatus('wait', '저장 중…');
+    const ref = recordsCol.doc(date);
+    await db.runTransaction(async (tx)=>{
+      const snap = await tx.get(ref);
+      const data = (snap.exists && snap.data().data) ? snap.data().data.slice() : state.students.map(()=>'0'.repeat(9));
+      while(data.length < state.students.length) data.push('0'.repeat(9));
+      data[sIdx] = newVal;
+      tx.set(ref, { data });
+    });
+  }catch(e){ console.error(e); setStatus('err', '저장 실패 · 다시 시도해주세요'); }
+}
+
+// 시간표 모달에서 "실제로 수정한 달"만 각자의 문서에 쓴다 (건드리지 않은 달은 아예 쓰지 않음).
+async function persistScheduleMonths(months){
+  if(!isConfigured || !scheduleCol) return;
+  const list = Array.from(months || []);
+  if(list.length === 0) return;
+  try{
+    setStatus('wait', '저장 중…');
+    const batch = db.batch();
+    list.forEach(ym=>{
+      batch.set(scheduleCol.doc(ym), { data: state.schedule[ym] || {} });
+    });
+    await batch.commit();
+  }catch(e){ console.error(e); setStatus('err', '저장 실패 · 다시 시도해주세요'); }
+}
+
+async function persistChangeUpsert(change){
+  if(!isConfigured || !changesCol) return;
+  try{
+    setStatus('wait', '저장 중…');
+    const { id, ...rest } = change;
+    await changesCol.doc(id).set(rest);
+  }catch(e){ console.error(e); setStatus('err', '저장 실패 · 다시 시도해주세요'); }
+}
+
+async function persistChangeDelete(id){
+  if(!isConfigured || !changesCol) return;
+  try{
+    setStatus('wait', '저장 중…');
+    await changesCol.doc(id).delete();
+  }catch(e){ console.error(e); setStatus('err', '저장 실패 · 다시 시도해주세요'); }
+}
+
+// 문단속 공지는 lock/overrides 문서 안의 "그 날짜 필드"만 점(.)표기법으로 부분 수정한다.
+// 다른 날짜를 고치는 다른 사람과는 절대 부딪히지 않는다.
+async function persistLockOverride(date, text){
+  if(!isConfigured || !lockRef) return;
+  try{
+    setStatus('wait', '저장 중…');
+    if(text){
+      await lockRef.set({ data: { [date]: text } }, { merge: true });
+    } else {
+      // 지울 내용이 없는데 문서 자체가 아직 없을 수도 있으니(맨 처음 사용 등) 그 경우는 조용히 넘어간다.
+      try{
+        await lockRef.update({ [`data.${date}`]: firebase.firestore.FieldValue.delete() });
+      }catch(err){
+        if(err && err.code !== 'not-found') throw err;
+      }
+    }
+  }catch(e){ console.error(e); setStatus('err', '저장 실패 · 다시 시도해주세요'); }
+}
+
+// 예약현황 엑셀 업로드는 원래도 "통째로 새로 반영"하는 게 의도된 동작이라 그대로 전체 교체한다.
+async function persistRoomReservations(parsed){
+  if(!isConfigured || !roomsRef) return;
+  try{
+    setStatus('wait', '저장 중…');
+    await roomsRef.set({ data: parsed, updatedAt: new Date().toISOString() });
+  }catch(e){ console.error(e); setStatus('err', '저장 실패 · 다시 시도해주세요'); }
 }
 
 /* ---------- 데이터 백업 · 복구 ---------- */
@@ -2247,10 +2390,27 @@ function loadLocalBackup(){
   }catch(e){ return null; }
 }
 
-// 클라우드(Firestore)의 별도 backups 서브컬렉션에 시점 스냅샷 저장.
-// 메인 문서와 분리된 경로라, 메인 문서가 실수로 삭제/초기화돼도 이 기록은 남아있음.
+// 배열을 size 크기 묶음으로 나눈다 (Firestore batch는 한 번에 최대 500개 연산까지만 허용)
+function _chunk(arr, size){
+  const out = [];
+  for(let i=0; i<arr.length; i+=size) out.push(arr.slice(i, i+size));
+  return out;
+}
+
+// 컬렉션 안의 문서를 전부 지운다 (백업 복원 시, 지금은 있지만 백업 시점엔 없었던 문서를 정리하기 위함)
+async function _deleteAllDocsIn(colRef){
+  const snap = await colRef.get();
+  for(const group of _chunk(snap.docs, 400)){
+    const batch = db.batch();
+    group.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+  }
+}
+
+// 클라우드(Firestore)의 별도 backups 서브컬렉션(meta/config 문서 아래)에 시점 스냅샷 저장.
+// meta 문서와 분리된 경로라, meta 문서가 실수로 삭제/초기화돼도 이 기록은 남아있음.
 async function maybeAutoBackup(force){
-  if(!isConfigured || !docRef) return;
+  if(!isConfigured || !metaRef) return;
   let last = 0;
   try{ last = parseInt(localStorage.getItem(LAST_AUTO_BACKUP_KEY) || '0', 10); }catch(e){}
   const now = Date.now();
@@ -2258,7 +2418,7 @@ async function maybeAutoBackup(force){
   try{
     const snapshot = JSON.parse(JSON.stringify(state));
     snapshot.savedAtClient = new Date().toISOString();
-    await docRef.collection('backups').add(snapshot);
+    await metaRef.collection('backups').add(snapshot);
     try{ localStorage.setItem(LAST_AUTO_BACKUP_KEY, String(now)); }catch(e){}
     cleanupOldBackups();
   }catch(e){
@@ -2268,9 +2428,9 @@ async function maybeAutoBackup(force){
 
 // 백업이 지나치게 쌓이는 걸 막기 위해, 최소 개수(BACKUP_KEEP_MIN)는 남기고 오래된 것부터 정리
 async function cleanupOldBackups(){
-  if(!docRef) return;
+  if(!metaRef) return;
   try{
-    const snap = await docRef.collection('backups').orderBy('savedAtClient', 'desc').get();
+    const snap = await metaRef.collection('backups').orderBy('savedAtClient', 'desc').get();
     const docs = snap.docs;
     if(docs.length <= BACKUP_KEEP_MIN) return;
     const cutoff = new Date(Date.now() - 60*24*60*60*1000).toISOString(); // 60일
@@ -2285,20 +2445,58 @@ async function cleanupOldBackups(){
 }
 
 async function listBackups(limit){
-  if(!docRef) return [];
-  const snap = await docRef.collection('backups').orderBy('savedAtClient', 'desc').limit(limit || 20).get();
+  if(!metaRef) return [];
+  const snap = await metaRef.collection('backups').orderBy('savedAtClient', 'desc').limit(limit || 20).get();
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
-// 백업 데이터를 실제 상태로 되돌리고 클라우드에 저장
+// 백업 데이터를 실제 상태로 되돌리고, 쪼개진 컬렉션들에 다시 나눠 쓴다.
+// (지금은 있지만 백업 시점엔 없었던 records/schedule/changes 문서는 먼저 지우고 다시 채운다)
 async function restoreFromBackup(backupData){
   const clone = JSON.parse(JSON.stringify(backupData));
   delete clone.id;
   delete clone.savedAtClient;
   if(!clone.lockNoticeOverrides) clone.lockNoticeOverrides = {};
+  if(!clone.records) clone.records = {};
+  if(!clone.schedule) clone.schedule = {};
+  if(!clone.changes) clone.changes = [];
+  if(!clone.roomReservations) clone.roomReservations = {};
+
   state = clone;
   renderAll();
-  if(docRef) await docRef.set(state);
+
+  if(!metaRef) return;
+  try{
+    await metaRef.set({ students: clone.students, target: clone.target }, { merge: true });
+    await lockRef.set({ data: clone.lockNoticeOverrides || {} });
+    await roomsRef.set({ data: clone.roomReservations || {}, updatedAt: clone.roomReservationsUpdatedAt || null });
+
+    await _deleteAllDocsIn(recordsCol);
+    for(const group of _chunk(Object.keys(clone.records), 400)){
+      const batch = db.batch();
+      group.forEach(date => batch.set(recordsCol.doc(date), { data: clone.records[date] }));
+      await batch.commit();
+    }
+
+    await _deleteAllDocsIn(scheduleCol);
+    for(const group of _chunk(Object.keys(clone.schedule), 400)){
+      const batch = db.batch();
+      group.forEach(ym => batch.set(scheduleCol.doc(ym), { data: clone.schedule[ym] }));
+      await batch.commit();
+    }
+
+    await _deleteAllDocsIn(changesCol);
+    for(const group of _chunk(clone.changes, 400)){
+      const batch = db.batch();
+      group.forEach(c=>{
+        const { id, ...rest } = c;
+        batch.set(changesCol.doc(id || (Date.now().toString(36)+Math.random().toString(36).slice(2,6))), rest);
+      });
+      await batch.commit();
+    }
+  }catch(e){
+    console.error('복원 중 일부 저장 실패', e);
+  }
   saveLocalBackup(state);
 }
 
@@ -2560,9 +2758,10 @@ async function toggleCell(sIdx, pIdx){
   const rec = getDayRecord(currentDate);
   const chars = rec[sIdx].split('');
   chars[pIdx] = chars[pIdx] === '1' ? '0' : '1';
-  rec[sIdx] = chars.join('');
+  const newVal = chars.join('');
+  rec[sIdx] = newVal;
   renderAll();
-  await persist();
+  await persistRecordCell(currentDate, sIdx, newVal);
 }
 
 function renderSummary(){
@@ -2635,7 +2834,7 @@ document.getElementById('saveSettings').addEventListener('click', async ()=>{
   state.target = (t && t>0) ? t : 30;
   overlay.classList.remove('show');
   renderAll();
-  await persist();
+  await persistMeta();
 });
 
 /* ---------- Schedule modal ---------- */
@@ -2651,6 +2850,7 @@ function ensureScheduleDraftStudent(yearMonth, sIdx){
 
 function openScheduleModal(){
   scheduleDraft = JSON.parse(JSON.stringify(state.schedule || {}));
+  scheduleDirtyMonths = new Set(); // 이번 모달 세션에서 실제로 수정한 달만 기록 (저장 시 이 달만 서버에 씀)
   scheduleActiveMonth = currentDate.slice(0,7); 
   scheduleActiveStudent = 0;
   scheduleViewMode = 'student';
@@ -2724,6 +2924,7 @@ function renderScheduleGrid(){
       const chars = scheduleDraft[scheduleActiveMonth][scheduleActiveStudent][dow].split('');
       chars[pIdx] = chars[pIdx]==='1' ? '0' : '1';
       scheduleDraft[scheduleActiveMonth][scheduleActiveStudent][dow] = chars.join('');
+      scheduleDirtyMonths.add(scheduleActiveMonth);
       renderScheduleGrid();
     });
   });
@@ -2774,10 +2975,14 @@ document.getElementById('cancelSchedule').addEventListener('click', ()=>{
 scheduleOverlay.addEventListener('click', (e)=>{ if(e.target===scheduleOverlay) scheduleOverlay.classList.remove('show'); });
 
 document.getElementById('saveSchedule').addEventListener('click', async ()=>{
-  state.schedule = scheduleDraft;
+  // 건드린 달만 로컬 state에도 반영한다 (건드리지 않은 달은 그대로 둬서,
+  // 모달이 열려있는 동안 다른 사람이 그 달을 고쳤다면 그 값이 사라지지 않게 한다).
+  scheduleDirtyMonths.forEach(ym=>{ state.schedule[ym] = scheduleDraft[ym]; });
+  const monthsToSave = scheduleDirtyMonths;
+  scheduleDirtyMonths = new Set();
   scheduleOverlay.classList.remove('show');
   renderAll();
-  await persist();
+  await persistScheduleMonths(monthsToSave);
 });
 
 /* ---------- 시간표 변동사항 ---------- */
@@ -2989,6 +3194,7 @@ async function saveChangeRecord(){
   }
 
   const includes9thPeriod = fromPeriods.includes(8);
+  let savedChange = null;
 
   if(editingChangeId){
     const idx = state.changes.findIndex(c=>c.id===editingChangeId);
@@ -2997,16 +3203,18 @@ async function saveChangeRecord(){
         ...state.changes[idx],
         student: sIdx, fromDate, fromPeriods, toDate, toPeriods
       };
+      savedChange = state.changes[idx];
     }
     editingChangeId = null;
   } else {
-    state.changes.push({
+    savedChange = {
       id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
       student: sIdx,
       fromDate, fromPeriods,
       toDate, toPeriods,
       createdAt: todayStr()
-    });
+    };
+    state.changes.push(savedChange);
   }
 
   if (includes9thPeriod) {
@@ -3017,7 +3225,7 @@ async function saveChangeRecord(){
   document.getElementById('changeToDate').value = nextWorkday(tomorrowStr());
 
   renderAll();
-  await persist();
+  if(savedChange) await persistChangeUpsert(savedChange);
 }
 
 function renderChangeLog(){
@@ -3076,7 +3284,7 @@ function renderChangeLogListOnly(){
       if(editingChangeId === id) cancelEditChange();
       state.changes = state.changes.filter(c=>c.id!==id);
       renderAll();
-      await persist();
+      await persistChangeDelete(id);
     });
   });
 }
@@ -3353,7 +3561,7 @@ function handleLockExcelFile(file){
       state.roomReservations = parsed;
       state.roomReservationsUpdatedAt = new Date().toISOString();
       renderAll();
-      await persist();
+      await persistRoomReservations(parsed);
       alert(`예약현황 엑셀을 반영했어요. (${dateCount}개 날짜 데이터)`);
     }catch(err){
       console.error(err);
@@ -3500,7 +3708,7 @@ function renderLockNotice(){
       }
       lockEditMode = false;
       renderLockNotice();
-      await persist();
+      await persistLockOverride(currentDate, text);
     });
   }
   const revertBtn = document.getElementById('lockRevertBtn');
@@ -3508,7 +3716,7 @@ function renderLockNotice(){
     revertBtn.addEventListener('click', async ()=>{
       if(state.lockNoticeOverrides) delete state.lockNoticeOverrides[currentDate];
       renderLockNotice();
-      await persist();
+      await persistLockOverride(currentDate, '');
     });
   }
 
